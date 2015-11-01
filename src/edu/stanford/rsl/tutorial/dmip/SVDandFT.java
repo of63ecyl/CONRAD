@@ -78,7 +78,7 @@ public class SVDandFT {
 		for(int i = 0; i < sInd; i++)
 		{
 			double val = svd.getS().getElement(i, i);
-			if (val < eps)
+			if (val < eps) // comment
 			{
 				Slowrank.setElementValue(i, i, 0.f);
 			}
