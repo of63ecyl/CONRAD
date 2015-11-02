@@ -33,7 +33,7 @@ public class Intro {
 	
 		//Define an image
 		//Hint: Import the package edu.stanford.rsl.conrad.data.numeric.Grid2D
-		//TODO
+		Grid2D image = new Grid2D(imageSizeX,imageSizeY);
 	
 		//Draw a circle
 		int radius = 50;
@@ -47,21 +47,23 @@ public class Intro {
 		//Show ImageJ GUI
 		ImageJ ij = new ImageJ();
 		//Display image
-		//TODO
+		image.show("Circle");
 		
 		//Copy an image
 		//TODO
-		//copy.show("Copy of circle");
+		Grid2D copy = new Grid2D(image);
+		copy.show("Copy of circle");
 		
 		
 		//Load an image from file
 		String filename = "D:/02_lectures/DMIP/exercises/2014/matlab_intro/mr12.dcm";
 		//TODO. Hint: Use IJ and ImageUtil
-		//mrImage.show();
+		Grid2D mrImage = ImageUtil.wrapImagePlus(IJ.openImage(filename));
+		mrImage.show();
 		
 		//convolution
-		//TODO
-		//TODO
+		Convolver conv = new Convolver();
+	
 		
 		//define the kernel. Try simple averaging 3x3 filter
 		int kw = 3;
@@ -72,7 +74,7 @@ public class Intro {
 			kernel[i] = 1.f / (kw*kh);
 		}
 		
-		//TODO
+		conv.convolve(imgProc,kernel,kw,kh);
 			
 		
 		//write an image to disk, check the supported output formats
@@ -91,7 +93,7 @@ public class Intro {
 		
 		for(int i = 0; i < y.length; i++)
 		{
-			//TODO
+			y[i] = Math.sin(i + i * stepSize);
 			
 		}
 		
@@ -112,8 +114,8 @@ public class Intro {
 		System.out.println("Creating a vector: v1 = [1.0; 2.0; 3.0]");
 		
 		//create column vector
-		//TODO
-		//System.out.println("v1 = " + v1.toString());
+		SimpleVector v1 = new SimpleVector(1.0, 2.0, 3.0);
+		System.out.println("v1 = " + v1.toString());
 		
 		//create a randomly initialized vector
 		SimpleVector vRand = new SimpleVector(3);
@@ -121,19 +123,30 @@ public class Intro {
 		//System.out.println("vRand = " + vRand.toString());
 		
 		//create matrix M 3x3  1 2 3; 4 5 6; 7 8 9
-		SimpleMatrix M = new SimpleMatrix();
-		//TODO
+		int size = 3;
+		int cnt = 0;
+		SimpleMatrix M = new SimpleMatrix(size,size);
+		for (int i = 0; i < size;  i++) 
+		{
+			for (int j = 0; j < size; j++) 
+			{
+ 				M.setElementValue(i, j, cnt);
+				cnt++;
+			}
+		}
+		
+		
 		//System.out.println("M = " + M.toString());
 		
 		//determinant of M
 		//System.out.println("Determinant of matrix m: " + TODO );
 		
 		//transpose M
-		//TODO
+		SimpleMatrix N = tM.transposed();
 		//copy matrix
 		//TODO
 		//transpose M inplace
-		//TODO
+		M.transpose();
 		
 		//get size
 		int numRows = 0;
