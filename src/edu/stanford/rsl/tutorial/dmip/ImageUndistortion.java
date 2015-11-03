@@ -11,6 +11,7 @@ import edu.stanford.rsl.conrad.numerics.SimpleMatrix;
 import edu.stanford.rsl.conrad.numerics.SimpleOperators;
 import edu.stanford.rsl.conrad.numerics.SimpleVector;
 import edu.stanford.rsl.conrad.numerics.DecompositionSVD;
+import edu.stanford.rsl.conrad.numerics.SimpleMatrix.InversionType;
 
 public class ImageUndistortion{
 
@@ -28,18 +29,18 @@ public class ImageUndistortion{
 		
 		//adapt the paths
 		int caseNo = 0;
-		String filename = "C:/Reconstruction/CONRAD/src/edu/stanford/rsl/tutorial/dmip/frame32.jpg";
+		String filename = "/proj/i5dmip/of63ecyl/Reconstruction/CONRAD/src/edu/stanford/rsl/tutorial/dmip/frame32.jpg";
 		
 		if(caseNo == 0)
 		{
-			filename = "C:/Reconstruction/CONRAD/src/edu/stanford/rsl/tutorial/dmip/frame32.jpg";
+			filename = "/proj/i5dmip/of63ecyl/Reconstruction/CONRAD/src/edu/stanford/rsl/tutorial/dmip/frame32.jpg";
 		}
 		else if(caseNo == 1)
 		{
-			filename = "C:/Reconstruction/CONRAD/src/edu/stanford/rsl/tutorial/dmip/undistorted.jpg";
+			filename = "/proj/i5dmip/of63ecyl/Reconstruction/CONRAD/src/edu/stanford/rsl/tutorial/dmip/undistorted.jpg";
 		}else if(caseNo == 2)
 		{
-			filename = "C:/Reconstruction/CONRAD/src/edu/stanford/rsl/tutorial/dmip/frame90.jpg";
+			filename = "/proj/i5dmip/of63ecyl/Reconstruction/CONRAD/src/edu/stanford/rsl/tutorial/dmip/frame90.jpg";
 		}
 				
 		Grid2D image = ImageUtil.wrapImagePlus(IJ.openImage(filename)).getSubGrid(0);
@@ -199,9 +200,8 @@ public class ImageUndistortion{
 		// Compute the distorted points:
 		// XD2 = XU2 + (XU2 - XD2)
 		// TODO:
-		// TODO:
-		// TODO:
-		// TODO:
+		Xd2 = SimpleOperators.add(Xu2,SimpleOperators.subtract(Xu2, Xd2));
+		Yd2 = SimpleOperators.add(Yu2,SimpleOperators.subtract(Yu2, Yd2));
 		
 		
 		// 2. Polynom of degree d
@@ -217,10 +217,13 @@ public class ImageUndistortion{
 		// Number of Coefficients
 		// TODO:
 		int numCoeff = 0;
+		for (int i = 0; i <= degree + 1; i++) {
+			numCoeff += i;
+		}
 		
 		// Number of Correspondences
 		// TODO:
-		int numCorresp = 0;
+		int numCorresp = nx * ny;
 		
 		// Print out of the used parameters
 		System.out.println("Polynom of degree: " + degree);
@@ -250,28 +253,33 @@ public class ImageUndistortion{
 		}
 		
 		// Compute matrix A
+		// loop over rows of A
 		for(int r = 0; r < numCorresp; r++)
 		{
 			int cc = 0;
+			// 2 loops for calculation of each row of A
 			for(int i = 0; i <= degree; i++)
 			{
 				for(int j = 0; j <= (degree-i); j++)
 				{
 					// TODO:
-					
+					double curX = Xd2.getElement(r, r);
+					double curY = Yd2.getElement(r, r);
+					A.setElementValue(r, cc, (Math.pow(curY, j) * Math.pow(curX, i)));
+					cc += 1;					
 				}
 			}
 		}
 		
 		// Compute the pseudo-inverse of A with the help of the SVD (class: DecompositionSVD)
-		// TODO
-		// TODO
-		
+		DecompositionSVD svd = new DecompositionSVD(A);
+		SimpleMatrix Ainv = A.inverse(InversionType.INVERT_SVD);
 		
 		// Compute the distortion coefficients
 		// TODO
+		SimpleVector u = SimpleOperators.multiply(Ainv, Xd2_vec);
 		// TODO
-		
+		SimpleVector v = SimpleOperators.multiply(Ainv, Yd2_vec);
 		
 		// 4. Compute the distorted grid points (xDist, yDist) which are used to sample the
 		// distorted image to get the undistorted image
@@ -291,6 +299,7 @@ public class ImageUndistortion{
 					for(int l = 0; l <= degree - k; l++)
 					{
 						// TODO
+						//xDist.setAtIndex(x, y, );
 						// TODO
 						// TODO
 					}
