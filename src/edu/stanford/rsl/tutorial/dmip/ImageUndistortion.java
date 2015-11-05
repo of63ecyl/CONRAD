@@ -167,8 +167,8 @@ public class ImageUndistortion{
 		
 		// step size
 		// TODO: calculate the stepsize of the lattice points 
-		float fx = imSize / (nx-1.f);
-		float fy = imSize / (ny-1.f);
+		float fx = imSize / nx;
+		float fy = imSize / ny;
 		
 		// Fill the distorted and undistorted lattice points with the 
 		// grid coordinates from the preprocessing part.
@@ -182,10 +182,10 @@ public class ImageUndistortion{
 			for(int j = 0; j < nx; j++)
 			{
 				//TODO: sample the distorted and undistorted grid points at the lattice points
-				Xu2.setElementValue(i, j, X.getAtIndex(i*(int)fx, j*(int)fy));
-				Yu2.setElementValue(i, j, Y.getAtIndex(i*(int)fx, j*(int)fy));
-				Xd2.setElementValue(i, j, Xd.getAtIndex(i*(int)fx, j*(int)fy));
-				Yd2.setElementValue(i, j, Yd.getAtIndex(i*(int)fx, j*(int)fy));
+				Xu2.setElementValue(j, i, X.getAtIndex((int)((i+1)*fy), (int)((j+1)*fx)));
+				Yu2.setElementValue(j, i, Y.getAtIndex((int)((i+1)*fy), (int)((j+1)*fx)));
+				Xd2.setElementValue(j, i, Xd.getAtIndex((int)((i+1)*fy), (int)((j+1)*fx)));
+				Yd2.setElementValue(j, i, Yd.getAtIndex((int)((i+1)*fy), (int)((j+1)*fx)));
 			}
 		}
 		
@@ -200,8 +200,10 @@ public class ImageUndistortion{
 		// Compute the distorted points:
 		// XD2 = XU2 + (XU2 - XD2)
 		// TODO:
-		Xd2 = SimpleOperators.add(Xu2,SimpleOperators.subtract(Xu2, Xd2));
-		Yd2 = SimpleOperators.add(Yu2,SimpleOperators.subtract(Yu2, Yd2));
+		Xd2.multiplyBy(-1);
+		Yd2.multiplyBy(-1);
+		Xd2.add(Xu2,Xu2);
+		Yd2.add(Yu2,Yu2);
 		
 		
 		// 2. Polynom of degree d
@@ -216,14 +218,12 @@ public class ImageUndistortion{
 		
 		// Number of Coefficients
 		// TODO:
-		int numCoeff = 0;
-		for (int i = 0; i <= degree + 1; i++) {
-			numCoeff += i;
-		}
+		int numCoeff = (degree + 2) * (degree + 1) / 2 ;
+		
 		
 		// Number of Correspondences
 		// TODO:
-		int numCorresp = nx * ny;
+		int numCorresp = Xd2.getCols() * Xd2.getRows();
 		
 		// Print out of the used parameters
 		System.out.println("Polynom of degree: " + degree);
@@ -263,23 +263,23 @@ public class ImageUndistortion{
 				for(int j = 0; j <= (degree-i); j++)
 				{
 					// TODO:
-					double curX = Xd2.getElement(r, r);
-					double curY = Yd2.getElement(r, r);
+					double curX = Xu2_vec.getElement(r);
+					double curY = Yu2_vec.getElement(r);
 					A.setElementValue(r, cc, (Math.pow(curY, j) * Math.pow(curX, i)));
-					cc += 1;					
+					cc++;									
 				}
 			}
 		}
 		
 		// Compute the pseudo-inverse of A with the help of the SVD (class: DecompositionSVD)
 		DecompositionSVD svd = new DecompositionSVD(A);
-		SimpleMatrix Ainv = A.inverse(InversionType.INVERT_SVD);
+		SimpleMatrix Ainv = svd.inverse(true);
 		
 		// Compute the distortion coefficients
 		// TODO
-		SimpleVector u = SimpleOperators.multiply(Ainv, Xd2_vec);
+		SimpleVector u_vec = SimpleOperators.multiply(Ainv, Xd2_vec);
 		// TODO
-		SimpleVector v = SimpleOperators.multiply(Ainv, Yd2_vec);
+		SimpleVector v_vec = SimpleOperators.multiply(Ainv, Yd2_vec);
 		
 		// 4. Compute the distorted grid points (xDist, yDist) which are used to sample the
 		// distorted image to get the undistorted image
@@ -299,9 +299,9 @@ public class ImageUndistortion{
 					for(int l = 0; l <= degree - k; l++)
 					{
 						// TODO
-						//xDist.setAtIndex(x, y, );
-						// TODO
-						// TODO
+						xDist.setAtIndex(x, y, (float) (xDist.getAtIndex(x, y) + u_vec.getElement(cc) * Math.pow(x, k) * Math.pow(y,l)));
+						yDist.setAtIndex(x, y, (float) (yDist.getAtIndex(x, y) + v_vec.getElement(cc) * Math.pow(x, k) * Math.pow(y,l)));
+						cc++;
 					}
 				}
 			}
@@ -314,7 +314,8 @@ public class ImageUndistortion{
 			for(int j = 0; j < imSize; j++)
 			{
 				// TODO
-				// TODO
+				float val = InterpolationOperators.interpolateLinear(distortedImage, xDist.getAtIndex(i, j), yDist.getAtIndex(i, j));
+				undistortedImage.setAtIndex(i, j, val);
 			}
 		}
 		undistortedImage.show("Undistorted Image");

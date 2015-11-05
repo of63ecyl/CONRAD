@@ -142,7 +142,7 @@ public class Intro {
 		//System.out.println("Determinant of matrix m: " + TODO );
 		
 		//transpose M
-		SimpleMatrix N = tM.transposed();
+		SimpleMatrix N = M.transposed();
 		//copy matrix
 		//TODO
 		//transpose M inplace
