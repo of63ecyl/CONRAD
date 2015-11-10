@@ -58,8 +58,8 @@ public class Intro {
 		//Load an image from file
 		String filename = "D:/02_lectures/DMIP/exercises/2014/matlab_intro/mr12.dcm";
 		//TODO. Hint: Use IJ and ImageUtil
-		Grid2D mrImage = ImageUtil.wrapImagePlus(IJ.openImage(filename));
-		mrImage.show();
+		//Grid2D mrImage = ImageUtil.wrapImagePlus(IJ.openImage(filename));
+		//mrImage.show();
 		
 		//convolution
 		Convolver conv = new Convolver();
@@ -74,7 +74,7 @@ public class Intro {
 			kernel[i] = 1.f / (kw*kh);
 		}
 		
-		conv.convolve(imgProc,kernel,kw,kh);
+		//conv.convolve(imgProc,kernel,kw,kh);
 			
 		
 		//write an image to disk, check the supported output formats
