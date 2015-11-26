@@ -128,25 +128,32 @@ public class RANSAC {
 		// Threshold defining the allowed distance of a point to the line
 		double thresh = 0.2;
 		
-		// TODO: line parameters
+		// line parameters
 		double m = line_params.getElement(0); // steigung
-		double b = line_params.getElement(1); // achsenabschnitt
-		// TODO: get some point on the line
-		double x = Math.random();
-		double y = (m * x) + b;
-		// TODO: calculate normal vector of the line
-		double n2 = 1;
-		double n1 = (y * n2) / x;
-		SimpleVector normal = new SimpleVector(n1,n2);
-		// TODO: calculate distance line to origin
+		double c = line_params.getElement(1); // y-achsenabschnitt
+		// get some point on the line
+		SimpleVector point = new SimpleVector(1,m*1+c);
 		
+		// calculate normal vector of the line
+		SimpleVector n = new SimpleVector(-m,1);
+		n = n.normalizedL2();
+		// calculate distance line to origin
+		double d = Math.abs(SimpleOperators.multiplyInnerProd(point, n));
 		
-		// TODO: calculate the distance for each point to the line
-		// TODO: check if the distance is higher than the threshold
+		// calculate the distance for each point to the line
+		// check if the distance is higher than the threshold
+		double error = 0;
 		
-		// comment
-		// TODO: return the error
-		return 0;
+		for(int i = 0; i < points.getRows(); i++)
+		{
+			double dp = Math.abs(SimpleOperators.multiplyInnerProd(points.getRow(i), n) - d);
+			if (dp > thresh){
+				error++;
+			}
+		}
+		error /= points.getRows();
+		// return the error
+		return error;
 	}
 	
 	
