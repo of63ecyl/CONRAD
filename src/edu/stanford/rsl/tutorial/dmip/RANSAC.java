@@ -144,7 +144,7 @@ public class RANSAC {
 		// TODO: calculate the distance for each point to the line
 		// TODO: check if the distance is higher than the threshold
 		
-		
+		// comment
 		// TODO: return the error
 		return 0;
 	}
