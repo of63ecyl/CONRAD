@@ -22,7 +22,7 @@ import ij.ImageJ;
  *
  */
 public class SVDandFT {
-	
+
 	public static void invertSVD(SimpleMatrix A)
 	{			
 		System.out.println("A = " + A.toString());
@@ -356,6 +356,7 @@ public class SVDandFT {
 		// Important: Grid2DComplex enlarges the original image to the next power of 2
 		imageC.show();
 		
+		
 		//Apply 2-D discrete fourier transform
 		//Puts the DC component of the signal in the upper left corner of the FFT
 		imageC.transformForward();
@@ -379,7 +380,7 @@ public class SVDandFT {
 
 	public static void main(String[] args) {
 		
-		/*ImageJ ij = new ImageJ();
+		ImageJ ij = new ImageJ();
 		//Create matrix A 
 		// 11 10  14
 		// 12 11 -13
@@ -416,7 +417,6 @@ public class SVDandFT {
 		
 		int rank = 100;		
 		optimizationProblem3(image, rank);
-		*/
 		
 		//Load Data for Fourier Transform exercise
 		//1. Start the ReconstructionPipelineFrame (src/apps/gui/)
