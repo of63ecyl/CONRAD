@@ -29,7 +29,7 @@ public class Phantom extends Grid2D {
 	}
 
 	public static void main (String[] args){
-		Phantom a = new Phantom(256, 256);
+		Phantom a = new Phantom(512,512);
 		a.show();
 	}
 }
