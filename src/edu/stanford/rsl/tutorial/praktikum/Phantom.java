@@ -1,6 +1,8 @@
 package edu.stanford.rsl.tutorial.praktikum;
 
+import ij.ImageJ;
 import edu.stanford.rsl.conrad.data.numeric.Grid2D;
+import edu.stanford.rsl.conrad.data.numeric.NumericPointwiseOperators;
 
 public class Phantom extends Grid2D {
 	public Phantom(int width, int height) {
@@ -44,6 +46,8 @@ public class Phantom extends Grid2D {
 	}
 
 	public static void main (String[] args){
+		
+		new ImageJ();
 		Phantom a = new Phantom(512,512);
 		a.show();
 	}
