@@ -283,7 +283,7 @@ public class MotionCompensatedRecon{
 		Thread thread = new Thread(new Runnable(){
 			public void run(){
 				try {
-					filteringPipeline.project();
+					//filteringPipeline.project();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
