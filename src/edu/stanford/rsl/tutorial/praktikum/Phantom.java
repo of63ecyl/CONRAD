@@ -18,7 +18,7 @@ public class Phantom extends Grid2D {
 		System.out.println(origin[0]);
 		System.out.println(origin[1]);
 		
-		// build square
+		/*// build square
 		int edgeLength = width/4;
 		int squareCenterX = width/2-edgeLength/6;
 		int squareCenterY = height/2-edgeLength/2;
@@ -26,7 +26,7 @@ public class Phantom extends Grid2D {
 			for (int col = squareCenterX-edgeLength; col < squareCenterX+edgeLength; col++){
 				this.setAtIndex(col,row, (.2f));
 			}
-		}
+		}*/
 		
 		// circle
 		int circleCenterX = width/2+width/8;
@@ -40,7 +40,7 @@ public class Phantom extends Grid2D {
 			}
 		}
 		
-		// ellipse
+		/*// ellipse
 		int ellipseCenterX = width/2+width/8;
 		//System.out.println(ellipseCenterX);
 		int ellipseCenterY = height/2-height/8;
@@ -55,7 +55,7 @@ public class Phantom extends Grid2D {
 					this.setAtIndex(col,row, .7f);
 				}
 			}
-		}
+		}*/
 	}
 
 	public static void main (String[] args){
