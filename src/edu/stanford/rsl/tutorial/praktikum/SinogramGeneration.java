@@ -17,10 +17,14 @@ import edu.stanford.rsl.tutorial.dmip.DMIP_ParallelBeam.RampFilterType;
 
 public class SinogramGeneration {
 	
-	public Grid2D projectRayDriven(Grid2D grid, double maxTheta, double deltaTheta, double maxS, double deltaS) {
+	public Grid2D projectRayDriven(Grid2D grid, int projectionNumber, double spacing, float detectorSize, double angularRange) {
 		
-		int maxSIndex = (int) (maxS / deltaS + 1);
-		int maxThetaIndex = (int) (maxTheta / deltaTheta + 1);
+		int maxSIndex = (int) detectorSize;
+		double maxS = detectorSize * spacing;
+		int maxThetaIndex = projectionNumber;
+		
+		double deltaS = spacing;
+		double deltaTheta = angularRange / projectionNumber;
 		
 		final double samplingRate = 3.d; // # of samples per pixel
 		Grid2D sino = new Grid2D(new float[maxThetaIndex*maxSIndex], maxSIndex, maxThetaIndex);
@@ -29,14 +33,13 @@ public class SinogramGeneration {
 		// set up image bounding box in WC
 		Translation trans = new Translation(
 				-(grid.getSize()[0] * grid.getSpacing()[0])/2, -(grid.getSize()[1] * grid.getSpacing()[1])/2, -1);
-		Transform inverse = trans.inverse();
 
 		Box b = new Box((grid.getSize()[0] * grid.getSpacing()[0]), (grid.getSize()[1] * grid.getSpacing()[1]), 2);
 		b.applyTransform(trans);
 
 		for(int e=0; e<maxThetaIndex; ++e){
 			// compute theta [rad] and angular functions.
-			double theta = deltaTheta * e;
+			double theta = (deltaTheta * e * Math.PI)/180;
 			double cosTheta = Math.cos(theta);
 			double sinTheta = Math.sin(theta);
 
@@ -53,13 +56,13 @@ public class SinogramGeneration {
 				// compute intersections between bounding box and intersection line.
 				ArrayList<PointND> points = b.intersect(line);
 
-				// only if we have intersections
+				/*// only if we have intersections
 				if (2 != points.size()){
 					if(points.size() == 0) {
 						line.getDirection().multiplyBy(-1.d);
 						points = b.intersect(line);
-					}
-					if(points.size() == 0)
+					}*/
+					if(points.size() != 2){
 						continue;
 				}
 
@@ -70,16 +73,10 @@ public class SinogramGeneration {
 				//start = inverse.transform(start);
 				
 				PointND current = new PointND(startVec);
-				double sum = .0;
 				
 				// compute once for start point
-				double [] indices = grid.physicalToIndex(current.get(0), current.get(1));
-			 
-				
-				//if (grid.getSize()[0] <= xStart + 1 || grid.getSize()[1] <= yStart + 1 || xStart < 0 || yStart < 0)
-					// continue;
-				
-				sum += InterpolationOperators.interpolateLinear(grid, indices[0], indices[1]);
+				double [] indices = grid.physicalToIndex(current.get(0), current.get(1));				
+				double sum = InterpolationOperators.interpolateLinear(grid, indices[0], indices[1]);
 				
 				
 				
@@ -105,7 +102,6 @@ public class SinogramGeneration {
 				// normalize by the number of interpolation points
 				sum /= samplingRate;
 				
-				//System.out.println("e: " + e + " i: " + i + "Sum: " + sum);
 				
 				// write integral value into the sinogram.
 				sino.setAtIndex(i, e, (float)sum);
@@ -123,19 +119,18 @@ public class SinogramGeneration {
 		SinogramGeneration parallel = new SinogramGeneration();
 		
 		// size of the phantom	
-				double angularRange = Math.PI; 	
+				double angularRange = 180; 	
 				// number of projection images	
 				int projectionNumber = 180;	
 				// angle in between adjacent projections
 				double angularStepSize 	= angularRange / projectionNumber;
-				// detector size in [mm]
+				// detector size in pixel
 				float detectorSize = 512; 
 				// size of a detector Element [mm]
-				float detectorSpacing = 1.0f;	
-				// filterType: NONE, RAMLAK, SHEPPLOGAN
-				RampFilterType filter = RampFilterType.SHEPPLOGAN;	
+				double detectorSpacing = 1.0f;
 				
-		Grid2D sino = parallel.projectRayDriven(phantom, angularRange-angularStepSize, angularStepSize, detectorSize, detectorSpacing);
+				
+		Grid2D sino = parallel.projectRayDriven(phantom, projectionNumber, detectorSpacing, detectorSize, angularRange);		
 		sino.show("The Sinogram");
 	}
 
