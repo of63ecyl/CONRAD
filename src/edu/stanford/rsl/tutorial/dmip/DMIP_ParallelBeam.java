@@ -108,9 +108,7 @@ public class DMIP_ParallelBeam {
 					double x = current.get(0) / grid.getSpacing()[0],
 							y = current.get(1) / grid.getSpacing()[1];
 
-					if (grid.getSize()[0] <= x + 1
-							|| grid.getSize()[1] <= y + 1
-							|| x < 0 || y < 0)
+					if (grid.getSize()[0] <= x + 1 || grid.getSize()[1] <= y + 1 || x < 0 || y < 0)
 						continue;
 
 					sum += InterpolationOperators.interpolateLinear(grid, x, y);

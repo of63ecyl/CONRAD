@@ -67,18 +67,46 @@ public class SinogramGeneration {
 				PointND end = points.get(1);   // [mm]
 				
 				SimpleVector startVec = new SimpleVector(start.getAbstractVector());
+				//start = inverse.transform(start);
+				
+				PointND current = new PointND(startVec);
+				double sum = .0;
+				
+				// compute once for start point
+				double [] indices = grid.physicalToIndex(current.get(0), current.get(1));
+			 
+				
+				//if (grid.getSize()[0] <= xStart + 1 || grid.getSize()[1] <= yStart + 1 || xStart < 0 || yStart < 0)
+					// continue;
+				
+				sum += InterpolationOperators.interpolateLinear(grid, indices[0], indices[1]);
+				
+				
+				
 				SimpleVector endVec = new SimpleVector(end.getAbstractVector());
 				SimpleVector integralVec = SimpleOperators.subtract(endVec, startVec);
-				double stepLength = grid.getSpacing()[0];
+				double distance = integralVec.normL2();
+				integralVec.divideBy(distance * samplingRate);
 				
-				// von start vector den integral vector entlang laufen, pixelwerte interpolieren
-
-				double sum = .0;
-
 				
+				for (double t = 0.0; t < (distance * samplingRate)-1; t++){
+					current.getAbstractVector().add(integralVec);
+					
+					indices = grid.physicalToIndex(current.get(0), current.get(1));
+					
+					if (grid.getSize()[0] <= indices[0] + 1 || grid.getSize()[1] <= indices[1] + 1 || indices[0] < 0 || indices[1] < 0){
+						continue;
+					}
+					
+					sum += InterpolationOperators.interpolateLinear(grid, indices[0], indices[1]);
+				}	
+								
 
 				// normalize by the number of interpolation points
 				sum /= samplingRate;
+				
+				//System.out.println("e: " + e + " i: " + i + "Sum: " + sum);
+				
 				// write integral value into the sinogram.
 				sino.setAtIndex(i, e, (float)sum);
 			}
@@ -88,7 +116,7 @@ public class SinogramGeneration {
 	
 	public static void main(String[] args){
 		new ImageJ();
-		double [] spacing = {1,2};
+		double [] spacing = {1,1};
 		Phantom phantom = new Phantom(512,512,spacing);
 		phantom.show("The phantom");
 		
@@ -101,7 +129,7 @@ public class SinogramGeneration {
 				// angle in between adjacent projections
 				double angularStepSize 	= angularRange / projectionNumber;
 				// detector size in [mm]
-				float detectorSize = 200; 
+				float detectorSize = 512; 
 				// size of a detector Element [mm]
 				float detectorSpacing = 1.0f;	
 				// filterType: NONE, RAMLAK, SHEPPLOGAN
