@@ -122,8 +122,6 @@ public class SinogramGeneration {
 				double angularRange = 180; 	
 				// number of projection images	
 				int projectionNumber = 180;	
-				// angle in between adjacent projections
-				double angularStepSize 	= angularRange / projectionNumber;
 				// detector size in pixel
 				float detectorSize = 512; 
 				// size of a detector Element [mm]
