@@ -8,7 +8,6 @@ import edu.stanford.rsl.conrad.data.numeric.NumericPointwiseOperators;
 public class Phantom extends Grid2D {
 	public Phantom(int width, int height, double [] spacing) {
 		super(width, height);
-		// TODO Auto-generated constructor stub
 		
 		this.setSpacing(spacing);
 		double [] origin = new double[2];
