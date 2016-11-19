@@ -60,7 +60,7 @@ public class Phantom extends Grid2D {
 	public static void main (String[] args){
 		
 		new ImageJ();
-		double [] spacing = {1,2};
+		double [] spacing = {1,1};
 		Phantom a = new Phantom(512,512,spacing);
 		System.out.println(a.getAtIndex(230,150));
 		a.show();
