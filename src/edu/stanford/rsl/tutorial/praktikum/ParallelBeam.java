@@ -5,6 +5,7 @@ import ij.ImageJ;
 import java.util.ArrayList;
 
 import edu.stanford.rsl.conrad.data.numeric.Grid1D;
+import edu.stanford.rsl.conrad.data.numeric.Grid1DComplex;
 import edu.stanford.rsl.conrad.data.numeric.Grid2D;
 import edu.stanford.rsl.conrad.data.numeric.InterpolationOperators;
 import edu.stanford.rsl.conrad.geometry.shapes.simple.Box;
@@ -173,6 +174,113 @@ public class ParallelBeam {
 		return grid;
 	}
 	
+	public Grid1D rampFiltering(Grid1D sinogram, double detectorSpacing){
+		
+		float detectorSpacingFloat = (float) detectorSpacing;
+		
+		// Initialize the ramp filter
+		// Define the filter in the spatial domain on the full padded size!
+		Grid1DComplex ramp = new Grid1DComplex(sinogram.getSize()[0]);
+		
+		int paddedSize = ramp.getSize()[0];
+		
+		float frequencySpacing = 1.f / (detectorSpacingFloat * paddedSize);
+		float maxFrequency = paddedSize/2 * frequencySpacing;
+		
+		for (int i = 0; i < paddedSize/2; i++)
+		{
+			float curFrequency = i * frequencySpacing;
+			ramp.setRealAtIndex(i, curFrequency);
+			//ramp.setImagAtIndex(i, curFrequency);
+			ramp.setImagAtIndex(i, 0);
+
+			
+			ramp.setRealAtIndex(i+paddedSize/2, maxFrequency - curFrequency);
+			//ramp.setImagAtIndex(i+paddedSize/2, maxFrequency - curFrequency);
+			ramp.setImagAtIndex(i+paddedSize/2, 0);
+		}
+		
+		//ramp.show("The Ramp Filter");
+		
+		Grid1DComplex sinogramF = new Grid1DComplex(sinogram,true);
+		// TODO: Transform the input sinogram signal into the frequency domain
+		sinogramF.transformForward();
+		
+		// TODO: Multiply the ramp filter with the transformed sinogram
+		for(int p = 0; p < sinogramF.getSize()[0]; p++)
+		{
+			sinogramF.multiplyAtIndex(p, ramp.getRealAtIndex(p), ramp.getImagAtIndex(p));
+		}
+		
+		// TODO: Backtransformation
+		sinogramF.transformInverse();
+		
+		// Crop the image to its initial size
+		Grid1D ret = new Grid1D(sinogram);
+		ret = sinogramF.getRealSubGrid(0, sinogram.getSize()[0]);
+				
+		return ret;
+	}
+	
+	public Grid1D ramLakFiltering(Grid1D sinogram, double detectorSpacing){
+		
+		float detectorSpacingFloat = (float) detectorSpacing;
+		
+		// Initialize the ramp filter
+		// Define the filter in the spatial domain on the full padded size!
+		Grid1DComplex kernel = new Grid1DComplex(sinogram.getSize()[0]);
+		
+		int paddedSize = kernel.getSize()[0];
+		
+		float frequencySpacing = 1.f / (detectorSpacingFloat * paddedSize);
+		float maxFrequency = paddedSize/2 * frequencySpacing;
+		
+			
+		final float odd = - 1.0f / (float) Math.pow(Math.PI, 2);
+		// TODO: implement the ram-lak filter in the spatial domain 
+		kernel.setAtIndex(0, 0.25f);
+		for (int i = 1; i < paddedSize/2; i++)
+		{
+			if (1 == (i%2))
+			{
+				kernel.setAtIndex(i, odd / (float)Math.pow(i, 2));
+			}
+		}
+		for (int i = paddedSize/2; i < paddedSize; i++)
+		{
+			final float tmp = paddedSize - i;
+			if (1 == (i%2))
+			{
+				kernel.setAtIndex(i, odd / (float)Math.pow(tmp, 2));
+			}
+		}
+		
+		// TODO: Transform ramp filter into frequency domain
+		kernel.transformForward();
+		//kernel.show("The kernel Filter");
+		
+		
+		Grid1DComplex sinogramF = new Grid1DComplex(sinogram,true);
+		// TODO: Transform the input sinogram signal into the frequency domain
+		sinogramF.transformForward();
+		
+		// TODO: Multiply the kernel filter with the transformed sinogram
+		for(int p = 0; p < sinogramF.getSize()[0]; p++)
+		{
+			sinogramF.multiplyAtIndex(p, kernel.getRealAtIndex(p), kernel.getImagAtIndex(p));
+		}
+		
+		// TODO: Backtransformation
+		sinogramF.transformInverse();
+		
+		// Crop the image to its initial size
+		Grid1D ret = new Grid1D(sinogram);
+		ret = sinogramF.getRealSubGrid(0, sinogram.getSize()[0]);
+				
+		return ret;
+	}
+	
+	
 	public static void main(String[] args){
 		new ImageJ();
 		double [] spacing = {1,1};
@@ -184,21 +292,61 @@ public class ParallelBeam {
 		ParallelBeam parallel = new ParallelBeam();
 		
 		// size of the phantom	
-				double angularRange = 180; 	
-				// number of projection images	
-				int projectionNumber = 180;	
-				// detector size in pixel
-				float detectorSize = 512; 
-				// size of a detector Element [mm]
-				double detectorSpacing = 1.0f;
+		double angularRange = 180; 	
+		// number of projection images	
+		int projectionNumber = 180;	
+		// detector size in pixel
+		float detectorSize = 512; 
+		// size of a detector Element [mm]
+		double detectorSpacing = 1.0f;
 				
 				
 		Grid2D sino = parallel.projectRayDriven(phantom, projectionNumber, detectorSpacing, detectorSize, angularRange);		
-		sino.show("The Sinogram");
+		sino.show("The Unfiltered Sinogram");
 		
-		// 5. Reconstruct the object with the information in the sinogram	
-		Grid2D reco = parallel.backprojectPixelDriven(sino, sizeX, sizeY, spacing);
-		reco.show("Reconstruction");
+		// Reconstruct the object with the information in the sinogram	
+		Grid2D recoUnfiltered = parallel.backprojectPixelDriven(sino, sizeX, sizeY, spacing);
+		recoUnfiltered.show("Unfiltered Reconstruction");
+		
+		
+		// Ramp Filtering
+		Grid2D rampFilteredSinogram = new Grid2D(sino);
+		for (int theta = 0; theta < sino.getSize()[1]; ++theta) 
+		{
+			// Filter each line of the sinogram independently
+			Grid1D tmp = parallel.rampFiltering(sino.getSubGrid(theta), detectorSpacing);
+			
+			for(int i = 0; i < tmp.getSize()[0]; i++)
+			{
+				rampFilteredSinogram.putPixelValue(i, theta, tmp.getAtIndex(i));
+			}
+		}
+		
+		rampFilteredSinogram.show("The Ramp Filtered Sinogram");
+		
+		// Reconstruct the object with the information in the Ramp filtered sinogram	
+		Grid2D recoRampFiltered = parallel.backprojectPixelDriven(rampFilteredSinogram, sizeX, sizeY, spacing);
+		recoRampFiltered.show("Ramp Filtered Reconstruction");
+		
+		
+		// RamLak Filtering
+		Grid2D ramLakFilteredSinogram = new Grid2D(sino);
+		for (int theta = 0; theta < sino.getSize()[1]; ++theta) //sino.getSize()[1]
+		{
+			// Filter each line of the sinogram independently
+			Grid1D tmp = parallel.ramLakFiltering(sino.getSubGrid(theta), detectorSpacing);
+			
+			for(int i = 0; i < tmp.getSize()[0]; i++)
+			{
+				ramLakFilteredSinogram.putPixelValue(i, theta, tmp.getAtIndex(i));
+			}
+		}
+		
+		ramLakFilteredSinogram.show("The RamLak Filtered Sinogram");
+		
+		// Reconstruct the object with the information in the Ramp filtered sinogram	
+		Grid2D recoRamLakFiltered = parallel.backprojectPixelDriven(ramLakFilteredSinogram, sizeX, sizeY, spacing);
+		recoRamLakFiltered.show("RamLak Filtered Reconstruction");
 	}
 
 }
