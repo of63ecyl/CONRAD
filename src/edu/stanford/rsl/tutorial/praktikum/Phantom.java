@@ -28,8 +28,8 @@ public class Phantom extends Grid2D {
 		}
 		
 		// circle
-		int circleCenterX = width/2;//+width/8;
-		int circleCenterY = height/2;//+height/10;
+		int circleCenterX = width/2+width/8;
+		int circleCenterY = height/2+height/10;
 		int radius = width/7;
 		for (int row = circleCenterY-radius; row < circleCenterY+radius; row++){
 			for (int col = circleCenterX-radius; col < circleCenterX+radius; col++) {

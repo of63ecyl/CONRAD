@@ -4,6 +4,7 @@ import ij.ImageJ;
 
 import java.util.ArrayList;
 
+import edu.stanford.rsl.conrad.data.numeric.Grid1D;
 import edu.stanford.rsl.conrad.data.numeric.Grid2D;
 import edu.stanford.rsl.conrad.data.numeric.InterpolationOperators;
 import edu.stanford.rsl.conrad.geometry.shapes.simple.Box;
@@ -15,7 +16,7 @@ import edu.stanford.rsl.conrad.numerics.SimpleOperators;
 import edu.stanford.rsl.conrad.numerics.SimpleVector;
 import edu.stanford.rsl.tutorial.dmip.DMIP_ParallelBeam.RampFilterType;
 
-public class SinogramGeneration {
+public class ParallelBeam {
 	
 	public Grid2D projectRayDriven(Grid2D grid, int projectionNumber, double spacing, float detectorSize, double angularRange) {
 		
@@ -110,13 +111,77 @@ public class SinogramGeneration {
 		return sino;
 	}
 	
+	public Grid2D backprojectPixelDriven(Grid2D sino, int imageSizeX, int imageSizeY, double [] spacing) {
+		
+		// number of rows in sinogram
+		int maxThetaIndex = sino.getSize()[1];
+		
+		// angle step size [deg]
+		double deltaTheta = sino.getSpacing()[1];
+		
+		// number of columns in sinogram (in pixels)
+		int maxSIndex = sino.getSize()[0];
+		
+		// size of detector bin [mm]
+		double deltaS = sino.getSpacing()[0];
+		
+		// size of whole detector [mm]
+		double maxS = (maxSIndex-1) * deltaS;
+		
+		// allocating empty output image
+		Grid2D grid = new Grid2D(imageSizeX, imageSizeY);
+		grid.setSpacing(spacing[0], spacing[1]);
+		// set origin to the center of the output image
+		grid.setOrigin(-(imageSizeX*grid.getSpacing()[0])/2, -(imageSizeY*grid.getSpacing()[1])/2);
+		
+		// loop over the projection angles
+		for (int i = 0; i < maxThetaIndex; i++) {
+			// compute actual value for theta. Convert from deg to rad
+			double theta = (deltaTheta * i * Math.PI)/180;
+			// pre-compute sine and cosines for faster computation
+			double cosTheta = Math.cos(theta);
+			double sinTheta = Math.sin(theta);
+			// get detector direction vector (direction of ray shot)
+			//SimpleVector dirDetector = new SimpleVector(sinTheta,cosTheta);
+			SimpleVector dirDetector = new SimpleVector(cosTheta,sinTheta);
+			// loops over the image grid
+			for (int x = 0; x < imageSizeX; x++) {
+				for (int y = 0; y < imageSizeY; y++) {
+					// compute world coordinate of current pixel
+					double[] w = grid.indexToPhysical(x, y);
+					// wrap into vector
+					SimpleVector pixel = new SimpleVector(w[0], w[1]);
+					//  project pixel onto detector
+					double s = SimpleOperators.multiplyInnerProd(pixel, dirDetector);
+					// compute detector element index from world coordinates
+					s += maxS/2; // [mm]
+					s /= deltaS; // [GU]
+					// get detector grid
+					Grid1D subgrid = sino.getSubGrid(i);
+					// check detector bounds, continue if out of array
+					if (subgrid.getSize()[0] <= s + 1
+							||  s < 0)
+						continue;
+					// get interpolated value
+					float val = InterpolationOperators.interpolateLinear(subgrid, s);
+					// sum value to sinogram
+					grid.addAtIndex(x, y, val);
+				}
+
+			}
+		}
+		return grid;
+	}
+	
 	public static void main(String[] args){
 		new ImageJ();
 		double [] spacing = {1,1};
 		Phantom phantom = new Phantom(512,512,spacing);
+		int sizeX = phantom.getSize()[0];
+		int sizeY = phantom.getSize()[1];
 		phantom.show("The phantom");
 		
-		SinogramGeneration parallel = new SinogramGeneration();
+		ParallelBeam parallel = new ParallelBeam();
 		
 		// size of the phantom	
 				double angularRange = 180; 	
@@ -130,6 +195,10 @@ public class SinogramGeneration {
 				
 		Grid2D sino = parallel.projectRayDriven(phantom, projectionNumber, detectorSpacing, detectorSize, angularRange);		
 		sino.show("The Sinogram");
+		
+		// 5. Reconstruct the object with the information in the sinogram	
+		Grid2D reco = parallel.backprojectPixelDriven(sino, sizeX, sizeY, spacing);
+		reco.show("Reconstruction");
 	}
 
 }
