@@ -30,7 +30,7 @@ public class Phantom extends Grid2D {
 		// circle
 		int circleCenterX = width/2+width/8;
 		int circleCenterY = height/2+height/10;
-		int radius = width/7;
+		int radius = width/5;
 		for (int row = circleCenterY-radius; row < circleCenterY+radius; row++){
 			for (int col = circleCenterX-radius; col < circleCenterX+radius; col++) {
 				if (((col-circleCenterX)*(col-circleCenterX))+((row-circleCenterY)*(row-circleCenterY)) <= radius*radius){
@@ -40,16 +40,16 @@ public class Phantom extends Grid2D {
 		}
 		
 		// ellipse
-		int ellipseCenterX = width/2+width/8;
+		long ellipseCenterX = width/2+width/8;
 		//System.out.println(ellipseCenterX);
-		int ellipseCenterY = height/2-height/8;
+		long ellipseCenterY = height/2-height/8;
 		//System.out.println(ellipseCenterY);
-		int axisA = width/10;
-		int axisB = height/5;
+		long axisA = width/10;
+		long axisB = height/5;
 		//System.out.println(axisA);
 		//System.out.println(axisB);
-		for (int row = ellipseCenterY-axisB; row < ellipseCenterY+axisB; row++){
-			for (int col = ellipseCenterX-axisA; col < ellipseCenterX+axisA; col++) {	
+		for (int row = (int) (ellipseCenterY-axisB); row < ellipseCenterY+axisB; row++){
+			for (int col = (int) (ellipseCenterX-axisA); col < ellipseCenterX+axisA; col++) {	
 				if (((col-ellipseCenterX)*(col-ellipseCenterX)*axisB*axisB)+((row-ellipseCenterY)*(row-ellipseCenterY)*axisA*axisA) <= axisA*axisA*axisB*axisB){
 					this.setAtIndex(col,row, .7f);
 				}
