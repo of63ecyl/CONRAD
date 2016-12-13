@@ -18,11 +18,15 @@ public class FanBeam {
 	
 public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpacing, int numDetectorElements, double maxBeta, double d_si, double d_sd) {
 		
+		// detector index
 		int maxSIndex = numDetectorElements;
 		double detectorLength = (numDetectorElements-1) * detectorSpacing; //mm
 		
+		// angle index
 		double deltaS = detectorSpacing;
 		double betaIncrement = maxBeta / numProjs;
+		System.out.println(betaIncrement);
+		
 		
 		final double samplingRate = 3.d; // # of samples per pixel
 		Grid2D fanogram = new Grid2D(new float[numProjs*numDetectorElements], numDetectorElements, numProjs);
@@ -36,41 +40,58 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 
 		Box b = new Box((grid.getSize()[0] * grid.getSpacing()[0]), (grid.getSize()[1] * grid.getSpacing()[1]), 2);
 		b.applyTransform(trans);
+		//System.out.println(b.getMax().toString() + b.getMin().toString());
 
+		// iterate over angle
 		for(int e=0; e<numProjs; ++e){
+		//for(int e=0; e<2; ++e){
 			// compute beta [rad] and angular functions.
 			double beta = (betaIncrement * e * Math.PI)/180;
 			double cosBeta = Math.cos(beta);
 			double sinBeta = Math.sin(beta);
+			
+			// location of source (start in 2nd quadrant)
 			PointND sourceP = new PointND (-d_si * sinBeta, d_si * cosBeta, .0d);
+			System.out.println(sourceP.toString());
 			SimpleVector sourceVec = new SimpleVector(sourceP.getAbstractVector());
-			sourceVec.dividedBy(d_si).multipliedBy(-(d_sd-d_si)); //vector between source and detector center (central ray)
+			
+			//vector between source and detector center (central ray)
+			sourceVec.dividedBy(d_si).multipliedBy(-(d_sd-d_si)); 
+			
+			// vector in origin, pointing orthogonal to central ray (parallel to detector)
 			PointND sPoint = new PointND(deltaS * cosBeta, deltaS * sinBeta, .0d);
 			SimpleVector sVector = new SimpleVector(sPoint.getAbstractVector());
+			SimpleVector sVectorClone = sVector.clone();
+			
 			SimpleVector rayVec = new SimpleVector(sourceVec);
-			rayVec.subtract(sVector.multipliedBy(detectorLength / 2));
+			rayVec.subtract(sVectorClone.multipliedBy((detectorLength / 2)));
+			//System.out.println(rayVec.toString());
+			rayVec.multiplyElementBy(1, -1);
+			//System.out.println(rayVec.toString());
 			
 			for (int i = 0; i < maxSIndex; ++i) { 
 				// compute s, the distance from the detector edge in WC [mm]
-				rayVec.add(sVector.multipliedBy(i*deltaS));
+				SimpleVector sVectorClone2 = sVector.clone();
+				rayVec.add(sVectorClone2.multipliedBy(deltaS));
 				
 				PointND rayP = new PointND(rayVec.getElement(0),rayVec.getElement(1), .0d);
-
+				//System.out.println(sourceP.toString());
+				//System.out.println(rayP.toString());
+				
 				
 				// set up line equation
 				StraightLine line = new StraightLine(sourceP, rayP);
+				//System.out.println(line.toString());
 				// compute intersections between bounding box and intersection line.
 				ArrayList<PointND> points = b.intersect(line);
+				//System.out.println(points.toString());
 
-				/*// only if we have intersections
-				if (2 != points.size()){
-					if(points.size() == 0) {
-						line.getDirection().multiplyBy(-1.d);
-						points = b.intersect(line);
-					}*/
+				// only if we have intersections
 					if(points.size() != 2){
+						//System.out.println("angle: " + e + "   ray: " + i);
 						continue;
-				}
+					}
+				
 
 				PointND start = points.get(0); // [mm]
 				PointND end = points.get(1);   // [mm]
@@ -135,16 +156,22 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 		// size of a detector Element [mm]
 		double detectorSpacing = 1.0f;
 		
-		double d_si = 512;
-		double d_sd = 1024;
-		double halfFanAngle = Math.atan((detectorSize/2.0)/d_sd);
+		double d_si = 780;
+		double d_sd = 1200;
+		double halfFanAngle = Math.atan((detectorSize/2.0)/d_sd)*180;
+		//double halfFanAngle = 0;
+		System.out.println(halfFanAngle);
 		double maxBeta = 180 + 2 * halfFanAngle;
+		System.out.println(maxBeta);
 		
 				
 				
 		Grid2D fanogram = fan.projectRayDrivenFan(phantom, projectionNumber, detectorSpacing, detectorSize, maxBeta, d_si, d_sd); 
 		fanogram.show("The Unfiltered Sinogram");
 
+		// d_sd und d_si richtig beruecksichtigen
+		// drehrichtung detektor??
+		
 	}
 
 }
