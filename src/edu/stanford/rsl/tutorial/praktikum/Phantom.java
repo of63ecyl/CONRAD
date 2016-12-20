@@ -17,29 +17,17 @@ public class Phantom extends Grid2D {
 		System.out.println(origin[0]);
 		System.out.println(origin[1]);
 		
-		/*// build square
+		// build square
 		int edgeLength = width/4;
-		int squareCenterX = width/2;//-edgeLength/6;
-		int squareCenterY = height/2;//-edgeLength/2;
+		int squareCenterX = width/2-edgeLength/6;
+		int squareCenterY = height/2-edgeLength/2;
 		for(int row = squareCenterY-edgeLength; row<squareCenterY+edgeLength; row++){
 			for (int col = squareCenterX-edgeLength; col < squareCenterX+edgeLength; col++){
 				this.setAtIndex(col,row, (.2f));
 			}
-		}*/
-		
-		// circle
-		int circleCenterX = width/2;//+width/8;
-		int circleCenterY = height/2;//+height/10;
-		int radius = width/5;
-		for (int row = circleCenterY-radius; row < circleCenterY+radius; row++){
-			for (int col = circleCenterX-radius; col < circleCenterX+radius; col++) {
-				if (((col-circleCenterX)*(col-circleCenterX))+((row-circleCenterY)*(row-circleCenterY)) <= radius*radius){
-					this.setAtIndex(col,row, .5f);
-				}
-			}
 		}
 		
-		/*// ellipse
+		// ellipse
 		long ellipseCenterX = width/2+width/8;
 		//System.out.println(ellipseCenterX);
 		long ellipseCenterY = height/2-height/8;
@@ -54,7 +42,20 @@ public class Phantom extends Grid2D {
 					this.setAtIndex(col,row, .7f);
 				}
 			}
-		}*/
+		}
+		
+		// circle
+		int circleCenterX = width/2;//+width/8;
+		int circleCenterY = height/2;//+height/10;
+		int radius = width/5;
+		for (int row = circleCenterY-radius; row < circleCenterY+radius; row++){
+			for (int col = circleCenterX-radius; col < circleCenterX+radius; col++) {
+				if (((col-circleCenterX)*(col-circleCenterX))+((row-circleCenterY)*(row-circleCenterY)) <= radius*radius){
+					this.setAtIndex(col,row, .5f);
+				}
+			}
+		}
+		
 	}
 
 	public static void main (String[] args){
