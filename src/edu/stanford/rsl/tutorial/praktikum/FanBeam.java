@@ -221,6 +221,10 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		
 		Grid2D sinogram = fan.rebinning(fanogram, detectorSize, detectorSpacing, halfFanAngle, d_si, d_sd);
 		sinogram.show("The rebinning result");
+		
+		ParallelBeam parallel = new ParallelBeam();
+		Grid2D recoRampFiltered = parallel.backprojectPixelDriven(sinogram, sizeX, sizeY, spacing);
+		recoRampFiltered.show("Ramp Filtered Reconstruction");
 
 		// d_sd und d_si richtig beruecksichtigen
 		// drehrichtung detektor??
