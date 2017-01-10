@@ -4,6 +4,7 @@ import ij.ImageJ;
 
 import java.util.ArrayList;
 
+import edu.stanford.rsl.conrad.data.numeric.Grid1D;
 import edu.stanford.rsl.conrad.data.numeric.Grid2D;
 import edu.stanford.rsl.conrad.data.numeric.InterpolationOperators;
 import edu.stanford.rsl.conrad.geometry.shapes.simple.Box;
@@ -32,6 +33,8 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 		final double samplingRate = 3.d; // # of samples per pixel
 		Grid2D fanogram = new Grid2D(new float[numProjs*numDetectorElements], numDetectorElements, numProjs);
 		fanogram.setSpacing(detectorSpacing, betaIncrement);
+		// set origin to the center of the output image
+        fanogram.setOrigin(-(numDetectorElements*grid.getSpacing()[0])/2, -(numProjs*grid.getSpacing()[1])/2);
 		
 		//PointND originP = new PointND(grid.getOrigin()[0],grid.getOrigin()[1], .0d);
 
@@ -223,11 +226,25 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		sinogram.show("The rebinning result");
 		
 		ParallelBeam parallel = new ParallelBeam();
-		Grid2D recoRampFiltered = parallel.backprojectPixelDriven(sinogram, sizeX, sizeY, spacing);
+		
+		// Ramp Filtering
+				Grid2D rampFilteredSinogram = new Grid2D(sinogram);
+				for (int theta = 0; theta < sinogram.getSize()[1]; ++theta)  //sino.getSize()[1]; 
+				{
+					// Filter each line of the sinogram independently
+					Grid1D tmp = parallel.rampFiltering(sinogram.getSubGrid(theta), detectorSpacing);
+					
+					for(int i = 0; i < tmp.getSize()[0]; i++)
+					{
+						rampFilteredSinogram.putPixelValue(i, theta, tmp.getAtIndex(i));
+					}
+				}
+				
+				rampFilteredSinogram.show("The Ramp Filtered Sinogram");
+		
+		Grid2D recoRampFiltered = parallel.backprojectPixelDriven(rampFilteredSinogram, sizeX, sizeY, spacing);
 		recoRampFiltered.show("Ramp Filtered Reconstruction");
 
-		// d_sd und d_si richtig beruecksichtigen
-		// drehrichtung detektor??
 		
 	}
 
