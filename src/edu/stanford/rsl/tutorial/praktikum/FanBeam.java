@@ -206,7 +206,7 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		// size of a detector Element [mm]
 		double detectorSpacing = 1.0f;
 		
-		double d_si = 720;
+		double d_si = 600;
 		double d_sd = 1200;
 		double halfFanAngle = Math.atan((detectorSize/2.0)/d_sd)*180;
 		//double halfFanAngle = 0;
