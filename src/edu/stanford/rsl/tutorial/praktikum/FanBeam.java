@@ -212,7 +212,7 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		//double halfFanAngle = 0;
 		//System.out.println(halfFanAngle);
 		//double maxBeta = 180;
-		double maxBeta = 180 + 2 * halfFanAngle;
+		double maxBeta = (180 + 2 * halfFanAngle);
 		//System.out.println(maxBeta);
 		// number of projection images	
 		int projectionNumber = (int) maxBeta;	
