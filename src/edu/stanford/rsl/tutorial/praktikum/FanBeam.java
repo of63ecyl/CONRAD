@@ -56,6 +56,7 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 			
 			// location of source (start in 2nd quadrant)
 			PointND sourceP = new PointND (-d_si * sinBeta, d_si * cosBeta, .0d);
+			//System.out.println(e);
 			//System.out.println(sourceP.toString());
 			SimpleVector sourceVec = new SimpleVector(sourceP.getAbstractVector());
 			//System.out.println(sourceVec.toString());
@@ -155,7 +156,7 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacing, double halfFanAngle, double d_si, double d_sd) {
 		
 		int maxSIndex = detectorSize;
-		double maxS = (detectorSize-1) * detectorSpacing;
+		double maxS = (detectorSize) * detectorSpacing;  //(detectorSize-1) * detectorSpacing;
 		int maxThetaIndex = 180;
 	
 		double deltaS = detectorSpacing;
@@ -207,7 +208,7 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		double detectorSpacing = 1.0f;
 		
 		double d_si = 600;
-		double d_sd = 1200;
+		double d_sd = 1500;
 		double halfFanAngle = Math.atan((detectorSize/2.0)/d_sd)*180;
 		//double halfFanAngle = 0;
 		//System.out.println(halfFanAngle);
