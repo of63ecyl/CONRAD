@@ -5,8 +5,8 @@ import edu.stanford.rsl.conrad.data.numeric.Grid2D;
 import edu.stanford.rsl.conrad.data.numeric.InterpolationOperators;
 import edu.stanford.rsl.conrad.data.numeric.NumericPointwiseOperators;
 
-public class Phantom extends Grid2D {
-	public Phantom(int width, int height, double [] spacing) {
+public class Phantom2 extends Grid2D {
+	public Phantom2(int width, int height, double [] spacing) {
 		super(width, height);
 		
 		this.setSpacing(spacing);
@@ -17,7 +17,7 @@ public class Phantom extends Grid2D {
 		System.out.println(origin[0]);
 		System.out.println(origin[1]);
 		
-		// build square
+		/*// build square
 		int edgeLength = width/4;
 		int squareCenterX = width/2-edgeLength/6;
 		int squareCenterY = height/2-edgeLength/2;
@@ -25,9 +25,9 @@ public class Phantom extends Grid2D {
 			for (int col = squareCenterX-edgeLength; col < squareCenterX+edgeLength; col++){
 				this.setAtIndex(col,row, (.2f));
 			}
-		}
+		}*/
 		
-		/*// ellipse
+		// ellipse
 		long ellipseCenterX = width/2+width/8;
 		//System.out.println(ellipseCenterX);
 		long ellipseCenterY = height/2-height/8;
@@ -42,11 +42,11 @@ public class Phantom extends Grid2D {
 					this.setAtIndex(col,row, .7f);
 				}
 			}
-		}*/
+		}
 		
 		// circle
-		int circleCenterX = width/2+width/8;
-		int circleCenterY = height/2+height/10;
+		int circleCenterX = width/2;//+width/8;
+		int circleCenterY = height/2;//+height/10;
 		int radius = width/5;
 		for (int row = circleCenterY-radius; row < circleCenterY+radius; row++){
 			for (int col = circleCenterX-radius; col < circleCenterX+radius; col++) {
@@ -62,7 +62,7 @@ public class Phantom extends Grid2D {
 		
 		new ImageJ();
 		double [] spacing = {1,1};
-		Phantom a = new Phantom(256,512,spacing);
+		Phantom a = new Phantom(512,512,spacing);
 		System.out.println(a.getAtIndex(230,150));
 		a.show();
 		System.out.println("Sum of phantom: "+ NumericPointwiseOperators.sum(a));
@@ -72,4 +72,3 @@ public class Phantom extends Grid2D {
 		System.out.println(InterpolationOperators.interpolateLinear(a, 250, 300));
 		}
 	}
-

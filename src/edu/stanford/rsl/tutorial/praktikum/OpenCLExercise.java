@@ -32,11 +32,11 @@ public class OpenCLExercise {
 		Phantom a = new Phantom(512,512,spacing);
 		a.show();
 		
-		final long timeStartCPU = System.currentTimeMillis(); 
+		/*final long timeStartCPU = System.currentTimeMillis(); 
         obj.addCPU(a);
         final long timeEndCPU = System.currentTimeMillis(); 
         System.out.println("Verlaufszeit CPU: " + (timeEndCPU - timeStartCPU) + " Millisek.");
-        a.show();
+        a.show();*/
         
         Phantom c = new Phantom(512,512,spacing);
 		c.show();
