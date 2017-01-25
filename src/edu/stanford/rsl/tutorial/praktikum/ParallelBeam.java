@@ -22,7 +22,7 @@ public class ParallelBeam {
 	public Grid2D projectRayDriven(Grid2D grid, int projectionNumber, double spacing, float detectorSize, double angularRange) {
 		
 		int maxSIndex = (int) detectorSize;
-		double maxS = (detectorSize-1) * spacing;
+		double maxS = (maxSIndex-1) * spacing;
 		int maxThetaIndex = projectionNumber;
 		
 		double deltaS = spacing;
@@ -34,7 +34,7 @@ public class ParallelBeam {
 
 		// set up image bounding box in WC
 		Translation trans = new Translation(
-				(grid.getOrigin()[0]), grid.getOrigin()[1], -1);
+				grid.getOrigin()[0], grid.getOrigin()[1], -1);
 
 		Box b = new Box((grid.getSize()[0] * grid.getSpacing()[0]), (grid.getSize()[1] * grid.getSpacing()[1]), 2);
 		b.applyTransform(trans);
@@ -203,16 +203,16 @@ public class ParallelBeam {
 		//ramp.show("The Ramp Filter");
 		
 		Grid1DComplex sinogramF = new Grid1DComplex(sinogram,true);
-		//Transform the input sinogram signal into the frequency domain
+		// TODO: Transform the input sinogram signal into the frequency domain
 		sinogramF.transformForward();
 		
-		//Multiply the ramp filter with the transformed sinogram
+		// TODO: Multiply the ramp filter with the transformed sinogram
 		for(int p = 0; p < sinogramF.getSize()[0]; p++)
 		{
 			sinogramF.multiplyAtIndex(p, ramp.getRealAtIndex(p), ramp.getImagAtIndex(p));
 		}
 		
-		//Backtransformation
+		// TODO: Backtransformation
 		sinogramF.transformInverse();
 		
 		// Crop the image to its initial size
@@ -238,31 +238,26 @@ public class ParallelBeam {
 			
 		final float odd = - 1.0f / (float) Math.pow(Math.PI, 2);
 		// TODO: implement the ram-lak filter in the spatial domain 
-		kernel.setRealAtIndex(0, 0.25f);
-		for (int i = 0; i < paddedSize/2; i++)
+		kernel.setAtIndex(0, 0.25f);
+		for (int i = 1; i < paddedSize/2; i++)
 		{
 			if (1 == (i%2))
 			{
-				kernel.setRealAtIndex(i, odd / (float)Math.pow(i, 2));
-				//ramp.setImagAtIndex(i, curFrequency);
-				kernel.setImagAtIndex(i, 0);
-				//kernel.setAtIndex(i, odd / (float)Math.pow(i, 2));
+				kernel.setAtIndex(i, odd / (float)Math.pow(i, 2));
 			}
 		}
-		for (int i = (int) paddedSize/2; i < paddedSize; i++)
+		for (int i = paddedSize/2; i < paddedSize; i++)
 		{
 			final float tmp = paddedSize - i;
 			if (1 == (i%2))
 			{
-				kernel.setRealAtIndex(i, odd / (float)Math.pow(tmp, 2));
-				kernel.setImagAtIndex(i, 0);
-				//kernel.setAtIndex(i, odd / (float)Math.pow(tmp, 2));
+				kernel.setAtIndex(i, odd / (float)Math.pow(tmp, 2));
 			}
 		}
 		
 		// TODO: Transform ramp filter into frequency domain
 		kernel.transformForward();
-		//kernel.show("The ram lak Filter");
+		//kernel.show("The kernel Filter");
 		
 		
 		Grid1DComplex sinogramF = new Grid1DComplex(sinogram,true);
@@ -289,7 +284,7 @@ public class ParallelBeam {
 	public static void main(String[] args){
 		new ImageJ();
 		double [] spacing = {1,1};
-		Phantom phantom = new Phantom(512,512,spacing);
+		Phantom phantom = new Phantom(256,256,spacing);
 		int sizeX = phantom.getSize()[0];
 		int sizeY = phantom.getSize()[1];
 		phantom.show("The phantom");
@@ -297,9 +292,9 @@ public class ParallelBeam {
 		ParallelBeam parallel = new ParallelBeam();
 		
 		// size of the phantom	
-		double angularRange = 180; 	
+		double angularRange = 360; 	
 		// number of projection images	
-		int projectionNumber = 180;	
+		int projectionNumber = 360;	
 		// detector size in pixel
 		float detectorSize = 512; 
 		// size of a detector Element [mm]
@@ -309,14 +304,14 @@ public class ParallelBeam {
 		Grid2D sino = parallel.projectRayDriven(phantom, projectionNumber, detectorSpacing, detectorSize, angularRange);		
 		sino.show("The Unfiltered Sinogram");
 		
-		/*// Reconstruct the object with the information in the sinogram	
+		// Reconstruct the object with the information in the sinogram	
 		Grid2D recoUnfiltered = parallel.backprojectPixelDriven(sino, sizeX, sizeY, spacing);
-		recoUnfiltered.show("Unfiltered Reconstruction");*/
+		recoUnfiltered.show("Unfiltered Reconstruction");
 		
 		
 		// Ramp Filtering
 		Grid2D rampFilteredSinogram = new Grid2D(sino);
-		for (int theta = 0; theta < sino.getSize()[1]; ++theta)  //sino.getSize()[1]; 
+		for (int theta = 0; theta < sino.getSize()[1]; ++theta) 
 		{
 			// Filter each line of the sinogram independently
 			Grid1D tmp = parallel.rampFiltering(sino.getSubGrid(theta), detectorSpacing);
