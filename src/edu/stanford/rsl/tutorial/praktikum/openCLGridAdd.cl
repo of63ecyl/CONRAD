@@ -28,9 +28,9 @@ __kernel void gridAddKernel(__read_only image2d_t g1Tex,__read_only image2d_t g2
 	unsigned long idx = y*yStride + x;
 
 	float val1 = read_imagef(g1Tex, sampler, (float2) (x+0.5f, y+0.5f)).x;
-	float val2 + read+imagef(g2Tex, sampler, (float2) (x+0.5f, y+0.5f)).x;
+	float val2 = read_imagef(g2Tex, sampler, (float2) (x+0.5f, y+0.5f)).x;
 
-	gRes[idx] = val1+val2:
+	gRes[idx] = val1+val2;
 
 	return;
 }
