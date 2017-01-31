@@ -21,11 +21,11 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 		
 		// detector index
 		int maxSIndex = numDetectorElements;
-		double detectorLength = (numDetectorElements-1) * detectorSpacing; //mm
+		double detectorLength = (numDetectorElements) * detectorSpacing; //mm
 		
 		// angle index
 		double deltaS = detectorSpacing;
-		double betaIncrement = maxBeta / numProjs;
+		double betaIncrement = maxBeta / (1.0*numProjs);
 		//System.out.println(betaIncrement);
 		
 		double d_id = d_sd - d_si; 
@@ -34,7 +34,7 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 		Grid2D fanogram = new Grid2D(new float[numProjs*numDetectorElements], numDetectorElements, numProjs);
 		fanogram.setSpacing(detectorSpacing, betaIncrement);
 		// set origin to the center of the output image
-        fanogram.setOrigin(-(numDetectorElements*grid.getSpacing()[0])/2, -(numProjs*grid.getSpacing()[1])/2);
+        fanogram.setOrigin(-((numDetectorElements-1)*fanogram.getSpacing()[0])/2.0, 0.0); //-(numProjs*grid.getSpacing()[1])/2);
 		
 		//PointND originP = new PointND(grid.getOrigin()[0],grid.getOrigin()[1], .0d);
 
@@ -47,7 +47,7 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 		//System.out.println(b.getMax().toString() + b.getMin().toString());
 
 		// iterate over angle
-		for(int e=0; e<numProjs; ++e){
+		for(int e=0; e<numProjs; e++){
 		//for(int e=0; e<1; ++e){
 			// compute beta [rad] and angular functions.
 			double beta = (betaIncrement * e * Math.PI)/180;
@@ -59,7 +59,7 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 			//System.out.println(e);
 			//System.out.println(sourceP.toString());
 			SimpleVector sourceVec = new SimpleVector(sourceP.getAbstractVector());
-			//System.out.println(sourceVec.toString());
+			//System.out.println(sourceVec.toString());betaIncrement
 			
 			//vector between source and detector center (central ray)
 			sourceVec.normalizeL2();
@@ -101,7 +101,6 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 				// compute intersections between bounding box and intersection line.
 				ArrayList<PointND> points = b.intersect(line);
 				//System.out.println(points.toString());
-
 				// only if we have intersections
 					if(points.size() != 2){
 						//System.out.println("angle: " + e + "   ray: " + i);
@@ -129,10 +128,11 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 				integralVec.divideBy(distance * samplingRate);
 				
 				
-				for (double t = 0.0; t < (distance * samplingRate)-1; t++){
+				for (int t = 0; t < (distance * samplingRate)-1; t++){
 					current.getAbstractVector().add(integralVec);
 					
 					indices = grid.physicalToIndex(current.get(0), current.get(1));
+					//double [] spacing = {1,1};
 					
 					if (grid.getSize()[0] <= indices[0] + 1 || grid.getSize()[1] <= indices[1] + 1 || indices[0] < 0 || indices[1] < 0){
 						continue;
@@ -160,24 +160,32 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		int maxThetaIndex = 180;
 	
 		double deltaS = detectorSpacing;
-		double deltaTheta = 1; //maxThetaIndex / projectionNumber;
+		double deltaTheta = 1.0; //maxThetaIndex / projectionNumber;
 		
 		Grid2D sino = new Grid2D(new float[maxThetaIndex*maxSIndex], maxSIndex, maxThetaIndex);
-		sino.setSpacing(deltaS, deltaTheta);
+		sino.setSpacing(fanogram.getSpacing()[0],deltaTheta);//(deltaS, deltaTheta);
+        sino.setOrigin(fanogram.getOrigin()[0], 0.0);//-(maxSIndex*sino.getSpacing()[0])/2, 0.0);// -(maxThetaIndex*sino.getSpacing()[1])/2);
 		
-		for(int e=0; e<maxThetaIndex; ++e){
+		for(int e=0; e<maxThetaIndex; e++){
 			// compute theta [rad] and angular functions.
 			double theta = (deltaTheta * e * Math.PI)/180;
+			double [] spacing = {1,1};
 			double cosTheta = Math.cos(theta);
 			double sinTheta = Math.sin(theta);
 
-			for (int i = 0; i < maxSIndex; ++i) {
-				double s_par = deltaS * i - maxS / 2;
-				double gamma = Math.asin(s_par/d_si);
+			for (int i = 0; i < maxSIndex; i++) {
+				double s_par = deltaS * i; //- maxS / 2;
+				double [] s_par_world = sino.indexToPhysical(s_par, theta);
+				double gamma = Math.asin(s_par_world[0]/d_si);
 				double beta = theta - gamma;
-				double s_fan = Math.tan(gamma) * d_sd;
+				if(beta<0){
+					//System.out.println(beta);
+					gamma = -gamma;
+					beta = beta - 2*gamma + Math.PI;
+				}
+				double s_fan_world = Math.tan(gamma) * d_sd;
 				
-				double [] indices = fanogram.physicalToIndex(s_fan,beta);
+				double [] indices = fanogram.physicalToIndex(s_fan_world, Math.toDegrees(beta));
 				float curValue = InterpolationOperators.interpolateLinear(fanogram, indices[0], indices[1]);
 				
 				sino.setAtIndex(i, e, curValue);
@@ -194,7 +202,7 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		// TODO Auto-generated method stub
 		new ImageJ();
 		double [] spacing = {1,1};
-		Phantom phantom = new Phantom(512,512,spacing);
+		Phantom phantom = new Phantom(256,256,spacing);
 		int sizeX = phantom.getSize()[0];
 		int sizeY = phantom.getSize()[1];
 		phantom.show("The phantom");
@@ -207,8 +215,8 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		// size of a detector Element [mm]
 		double detectorSpacing = 1.0f;
 		
-		double d_si = 600;
-		double d_sd = 1500;
+		double d_si = 1000.0;
+		double d_sd = 1500.0;
 		double halfFanAngle = Math.atan((detectorSize/2.0)/d_sd)*180;
 		//double halfFanAngle = 0;
 		//System.out.println(halfFanAngle);
