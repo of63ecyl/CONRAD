@@ -12,42 +12,71 @@ import com.jogamp.opencl.CLContext;
 import com.jogamp.opencl.CLDevice;
 import com.jogamp.opencl.CLImage2d;
 import com.jogamp.opencl.CLImageFormat;
+import com.jogamp.opencl.CLKernel;
+import com.jogamp.opencl.CLProgram;
 import com.jogamp.opencl.CLImageFormat.ChannelOrder;
 import com.jogamp.opencl.CLImageFormat.ChannelType;
-import com.jogamp.opencl.CLKernel;
 import com.jogamp.opencl.CLMemory.Mem;
-import com.jogamp.opencl.CLProgram;
 
-import edu.stanford.rsl.conrad.data.generic.complex.OpenCLGridTest;
+import edu.stanford.rsl.conrad.data.numeric.Grid1D;
 import edu.stanford.rsl.conrad.data.numeric.Grid2D;
 import edu.stanford.rsl.conrad.data.numeric.opencl.OpenCLGrid2D;
 import edu.stanford.rsl.conrad.opencl.OpenCLUtil;
 
-public class OpenCLExercise2 {
-
+public class OpenCLBackprojection {
+	
 	public static void main(String[] args) throws IOException {
 		OpenCLExercise obj = new OpenCLExercise();
+		new ImageJ();
 		
 		// Size of the grid
 		int[] size = new int[] {128,128};
 		double [] spacing = {1,1};
-		
-		//allocate first grid
-		Phantom helpG1 = new Phantom(size[0],size[1],spacing);
-		helpG1.show();
-        OpenCLGrid2D g1 = obj.convertGrid(helpG1);
+		       
         
-        //allocate second grid
-        Phantom2 helpG2 = new Phantom2(size[0],size[1],spacing);
-  		helpG2.show();
-  		OpenCLGrid2D g2 = obj.convertGrid(helpG2);
-  		
-  		// allocate the resulting grid
-  		OpenCLGrid2D g3 = new OpenCLGrid2D(new Grid2D(size[0],size[1]));
-  		
+		Phantom phantom = new Phantom(size[0],size[1],spacing);
+		int sizeX = phantom.getSize()[0];
+		int sizeY = phantom.getSize()[1];
+		phantom.show("The phantom");
+		
+		ParallelBeam parallel = new ParallelBeam();
+		
+		// size of the phantom	
+		double angularRange = 180; 	
+		// number of projection images	
+		int projectionNumber = 180;	
+		// detector size in pixel
+		float detectorSize = 512; 
+		// size of a detector Element [mm]
+		double detectorSpacing = 1.0f;
+				
+				
+		Grid2D sino = parallel.projectRayDriven(phantom, projectionNumber, detectorSpacing, detectorSize, angularRange);		
+		sino.show("The Unfiltered Sinogram");
+	
+		
+		// Ramp Filtering
+		Grid2D rampFilteredSinogram = new Grid2D(sino);
+		for (int theta = 0; theta < sino.getSize()[1]; ++theta)  //sino.getSize()[1]; 
+		{
+			// Filter each line of the sinogram independently
+			Grid1D tmp = parallel.rampFiltering(sino.getSubGrid(theta), detectorSpacing);
+			
+			for(int i = 0; i < tmp.getSize()[0]; i++)
+			{
+				rampFilteredSinogram.putPixelValue(i, theta, tmp.getAtIndex(i));
+			}
+		}
+		
+		rampFilteredSinogram.show("The Ramp Filtered Sinogram");
+		
   		float[] imgSize = new float[size.length];
   		imgSize[0] = size[0];
   		imgSize[1] = size[1];
+		
+		OpenCLGrid2D sinoCL = obj.convertGrid(rampFilteredSinogram);
+		// allocate the resulting grid
+  		OpenCLGrid2D result = new OpenCLGrid2D(new Grid2D(size[0],size[1]));
   		
   		// Create the context
   		CLContext context = OpenCLUtil.getStaticContext();
@@ -60,59 +89,49 @@ public class OpenCLExercise2 {
   		
   		//InputStream is = OpenCLGridTest.class
   		// Load and compile the cl-code and create the kernel function
-  		InputStream is = OpenCLExercise2.class.getResourceAsStream("openCLGridAdd.cl");
+  		InputStream is = OpenCLBackprojection.class.getResourceAsStream("openCLBackprojector.cl");
   		
   		CLProgram program = context.createProgram(is).build();
 		
-  		CLKernel kernelFunction = program.createCLKernel("gridAddKernel");
+  		CLKernel kernelFunction = program.createCLKernel("backprojectorKernel");
   		
   		
   		// Create the OpenCL Grids and set their texture
   		
   		// Grid1
-  		CLBuffer<FloatBuffer> gImgSize = context.createFloatBuffer(imgSize.length, Mem.READ_ONLY);
-  		gImgSize.getBuffer().put(imgSize);
-  		gImgSize.getBuffer().rewind();
+  		CLBuffer<FloatBuffer> sinoCLImgSize = context.createFloatBuffer(imgSize.length, Mem.READ_ONLY);
+  		sinoCLImgSize.getBuffer().put(imgSize);
+  		sinoCLImgSize.getBuffer().rewind();
   		
   		// Create the CLBuffer for the grids
   		CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
   		
   		// make sure OpenCL is turned on / and things are on the device
-  		g1.getDelegate().prepareForDeviceOperation();
-  		g1.getDelegate().getCLBuffer().getBuffer().rewind();
+  		sinoCL.getDelegate().prepareForDeviceOperation();
+  		sinoCL.getDelegate().getCLBuffer().getBuffer().rewind();
   		
   		// Create and set the texture
-  		CLImage2d<FloatBuffer> g1Tex = null;
-  		g1Tex = context.createImage2d(g1.getDelegate().getCLBuffer().getBuffer(), size[0], size[1], format, Mem.READ_ONLY);
-  		g1.getDelegate().release();
+  		CLImage2d<FloatBuffer> sinoCLTex = null;
+  		sinoCLTex = context.createImage2d(sinoCL.getDelegate().getCLBuffer().getBuffer(), size[0], size[1], format, Mem.READ_ONLY);
+  		sinoCL.getDelegate().release();
   		
-  		// Grid 2
-  		g2.getDelegate().prepareForDeviceOperation();
-  		g2.getDelegate().getCLBuffer().getBuffer().rewind();
-  		
-  		// Create and set the texture image for second grid
-  		CLImage2d<FloatBuffer> g2Tex = null;
-  		g2Tex = context.createImage2d(g2.getDelegate().getCLBuffer().getBuffer(), size[0], size[1], format, Mem.READ_ONLY);
-  		g2.getDelegate().release();
   		
   		// Grid3
-  		g3.getDelegate().prepareForDeviceOperation();
+  		result.getDelegate().prepareForDeviceOperation();
   		
   		// Write memory on the GPU 
   		commandQueue
-  			.putWriteImage(g1Tex, true) // writes the first texture
-  			.putWriteImage(g2Tex, true) // writes the second texture
-  			.putWriteBuffer(g3.getDelegate().getCLBuffer(), true) // writes the third image buffer
-  			.putWriteBuffer(gImgSize, true)
+  			.putWriteImage(sinoCLTex, true) // writes the first texture
+  			.putWriteBuffer(result.getDelegate().getCLBuffer(), true) // writes the third image buffer
+  			.putWriteBuffer(sinoCLImgSize, true)
   			.finish();
   		
   		// Write kernel parameters
   		kernelFunction.rewind();
   		kernelFunction
-  		.putArg(g1Tex)
-  		.putArg(g2Tex)
-  		.putArg(g3.getDelegate().getCLBuffer())
-  		.putArg(gImgSize);
+  		.putArg(sinoCLTex)
+  		.putArg(result.getDelegate().getCLBuffer())
+  		.putArg(sinoCLImgSize);
   		
   		// Check correct work group sizes
   		int bpBlockSize[] = {32,32};
@@ -125,10 +144,10 @@ public class OpenCLExercise2 {
   		
   		// execute kernel
   		commandQueue.put2DRangeKernel(kernelFunction, 0, 0, globalWorkSize[0], globalWorkSize[1], realLocalSize[0], realLocalSize[1]).finish();
-  		g3.getDelegate().notifyDeviceChange();
+  		result.getDelegate().notifyDeviceChange();
   		
   		new ImageJ();
-  		new Grid2D(g3).show();
+  		new Grid2D(result).show();
 
 	}
 
