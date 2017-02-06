@@ -25,7 +25,7 @@ import edu.stanford.rsl.conrad.opencl.OpenCLUtil;
 
 public class OpenCLExercise2 {
 
-	public static void main(String[] args) {
+	public static void main(String[] args){
 		OpenCLExercise obj = new OpenCLExercise();
 		
 		// Size of the grid
