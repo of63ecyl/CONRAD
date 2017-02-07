@@ -5,7 +5,16 @@ typedef float Tcoord_dev;
 __constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 
 // Arguments: the first grid as texture,the result grid, the grid size
-__kernel void backprojectorKernel(__read_only image2d_t sinoCL,__global TvoxelValue* gRes,__constant Tcoord_dev* gVolumeSize, __constant int maxThetaIndex)
+__kernel void backprojectorKernel(__read_only image2d_t sinoCL,
+				  __global TvoxelValue* gRes,
+				  __constant Tcoord_dev* gVolumeSize, 
+				  int maxThetaIndex,
+				  float maxS,
+				  float deltaS,
+				  float deltaTheta,
+				  float spacingX,
+				  float spacingY)
+ 				
 {
 	int gidx = get_group_id(0);
 	int gidy = get_group_id(1);
@@ -18,42 +27,50 @@ __kernel void backprojectorKernel(__read_only image2d_t sinoCL,__global TvoxelVa
 	int x = get_global_id(0);
 	int y = get_global_id(1);
 
+
+	unsigned int yStride = gVolumeSize[0];
 	if (x >= gVolumeSize[0] || y >= gVolumeSize[1])
 	{
 		return;
 	}
-
+	
+	// x and y will be constant in this thread;
+	unsigned long idx = y*yStride + x;
+	
+	// x * this.spacing[0] + this.origin[0], y * this.spacing[1] + this.origin[0]  --> mad24?
+	float worldX = x*spacingX-((gVolumeSize[0] -1) * (spacingX/2));
+	float worldY = y*spacingY-((gVolumeSize[1] -1) * (spacingY/2));
+	
+	float detectorLength = (maxS-1)*deltaS;
+	float sum = 0.0f;
 
 	// loop over the projection angles
 	for (int i = 0; i < maxThetaIndex; i++) {
 		// compute actual value for theta. Convert from deg to rad
-		double theta = (deltaTheta * i * M_PI)/180;
+		float theta = (deltaTheta * i * M_PI)/180;
 		// pre-compute sine and cosines for faster computation
-		double cosTheta = cos(theta);
-		double sinTheta = sin(theta);
+		float cosTheta = cos(theta);
+		float sinTheta = sin(theta);
 		// get detector direction vector (direction of ray shot)
-		SimpleVector dirDetector = new SimpleVector(cosTheta,sinTheta); // 2d array?
+		float2 dirDetector = {cosTheta,sinTheta}; // 2d array?
 		// compute world coordinate of current pixel
-		double[] w = grid.indexToPhysical(x, y); // x * this.spacing[0] + this.origin[0], y * this.spacing[1] + this.origin[0]  --> mad24?
-		// wrap into vector
-		SimpleVector pixel = new SimpleVector(w[0], w[1]);  // 2d array?
+		float2 w = {worldX,worldY};
 		//  project pixel onto detector
-		double s = SimpleOperators.multiplyInnerProd(pixel, dirDetector); // dot product: dot(x,y)
+		float s = dot(w, dirDetector); // dot product: dot(x,y)
 		// compute detector element index from world coordinates
-		s += maxS/2; // [mm] // maxS uebergeben
-		s /= deltaS; // [GU] deltaS uebergeben
-		// get detector grid
-		Grid1D subgrid = sino.getSubGrid(i); // how to get subgrid??
-		// check detector bounds, continue if out of array
-		if (subgrid.getSize()[0] <= s + 1
-				||  s < 0)
-			continue;
+		s = s + ((detectorLength)/2); // [mm] //
+		s = s / deltaS; // [GU] deltaS uebergeben
+		
+		// get location in sinogram
+		float2 sinoLoc = {s+0.5f,i+0.5f};
+		
 		// get interpolated value
-		float val = InterpolationOperators.interpolateLinear(subgrid, s);  // how to do Interpolation??
-		// sum value to sinogram
-		grid.addAtIndex(x, y, val); // add interpolated value to prior value
+		float val = read_imagef(sinoCL,sampler,sinoLoc).x;
+		
+		sum = sum+val;
+		
 	}
-
-
+	
+	gRes[idx] = sum;
 	return;
 }
