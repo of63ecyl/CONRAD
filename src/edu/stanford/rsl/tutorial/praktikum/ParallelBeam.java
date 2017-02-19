@@ -133,7 +133,7 @@ public class ParallelBeam {
 		Grid2D grid = new Grid2D(imageSizeX, imageSizeY);
 		grid.setSpacing(spacing[0], spacing[1]);
 		// set origin to the center of the output image
-		grid.setOrigin(-(imageSizeX*grid.getSpacing()[0])/2, -(imageSizeY*grid.getSpacing()[1])/2);
+		grid.setOrigin(-((imageSizeX-1)*grid.getSpacing()[0])/2, -((imageSizeY-1)*grid.getSpacing()[1])/2);
 		
 		// loop over the projection angles
 		for (int i = 0; i < maxThetaIndex; i++) {
