@@ -7,6 +7,7 @@ __constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_T
 // Arguments: the first grid as texture,the result grid, the grid size
 __kernel void backprojectorKernel(__read_only image2d_t sinoCL,
 				  __global TvoxelValue* gRes,
+				  int sizereconstruction,
 				  //__constant Tcoord_dev* gVolumeSize, 
 				  int maxThetaIndex,
 				  float maxS,
@@ -16,32 +17,32 @@ __kernel void backprojectorKernel(__read_only image2d_t sinoCL,
 				  float spacingY)
  				
 {
-	int gidx = get_group_id(0);
-	int gidy = get_group_id(1);
-	int lidx = get_local_id(0);
-	int lidy = get_local_id(1);
+	//int gidx = get_group_id(0);
+	//int gidy = get_group_id(1);
+	//int lidx = get_local_id(0);
+	//int lidy = get_local_id(1);
 
-	int locSizex = get_local_size(0);
-	int locSizey = get_local_size(1);
+	//int locSizex = get_local_size(0);
+	//int locSizey = get_local_size(1);
 
-	int x = get_global_id(0);
-	int y = get_global_id(1);
+	int x = get_global_id(0); // theta
+	int y = get_global_id(1); // s
 
 
-	unsigned int yStride = gVolumeSize[0];
-	if (x >= gVolumeSize[0] || y >= gVolumeSize[1])
+	
+	if (x > sizereconstruction || y > sizereconstruction)
 	{
 		return;
 	}
-	
-	// x and y will be constant in this thread;
+
+	unsigned int yStride = sizereconstruction;
 	unsigned long idx = y*yStride + x;
 	
-	// x * this.spacing[0] + this.origin[0], y * this.spacing[1] + this.origin[0]  --> mad24?
-	float worldX = x*spacingX-((gVolumeSize[0] -1) * (spacingX/2));
-	float worldY = y*spacingY-((gVolumeSize[1] -1) * (spacingY/2));
+	// x * this.spacing[0] + this.origin[0], y * this.spacing[1] + this.origin[0]
+	float worldX = x*spacingX-((sizereconstruction -1) * (spacingX/2));
+	float worldY = y*spacingY-((sizereconstruction -1) * (spacingY/2));
 	
-	float detectorLength = (maxS-1)*deltaS;
+	float detectorLength = (maxS)*deltaS; //(maxS-1)*deltaS;
 	float sum = 0.0f;
 
 	// loop over the projection angles

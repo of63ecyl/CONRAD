@@ -22,19 +22,19 @@ import edu.stanford.rsl.conrad.data.numeric.Grid1D;
 import edu.stanford.rsl.conrad.data.numeric.Grid2D;
 import edu.stanford.rsl.conrad.data.numeric.opencl.OpenCLGrid2D;
 import edu.stanford.rsl.conrad.opencl.OpenCLUtil;
+import edu.stanford.rsl.tutorial.phantoms.SheppLogan;
 
-public class OpenCLBackprojection {
+public class OpenCLBackprojectionModified {
 	
 	public static Grid2D reconstructionCL(int worksize, int[] size, float[] spacing, double deltaS, float maxS, int maxTheta, double deltaTheta, Grid2D rampFilteredSinogram) throws IOException {
 		
+		int sizereconstruction = size[0];
 		float deltaSFl = (float)deltaS;
 		float deltaThetaFl = (float)deltaTheta;
 		
 		OpenCLExercise obj = new OpenCLExercise();
 		OpenCLGrid2D sinoCL = new OpenCLGrid2D(rampFilteredSinogram);
-		// allocate the resulting grid
-  		OpenCLGrid2D result = new OpenCLGrid2D(new Grid2D(size[0],size[1]));
-  		
+		
 		
 		float[] imgSize = new float[size.length];
   		imgSize[0] = size[0];
@@ -46,14 +46,14 @@ public class OpenCLBackprojection {
   		// Get the fastest device from context
   		CLDevice device = context.getMaxFlopsDevice();
   		
-  		// Create the command queue
-  		CLCommandQueue commandQueue = device.createCommandQueue();
-  		
   		//InputStream is = OpenCLGridTest.class
   		// Load and compile the cl-code and create the kernel function
-  		InputStream is = OpenCLBackprojection.class.getResourceAsStream("openCLBackprojector.cl");
+  		InputStream is = OpenCLBackprojection.class.getResourceAsStream("openCLBackprojectorModified.cl");
   		
   		CLProgram program = context.createProgram(is).build();
+  		
+  		// Create the CLBuffer for the grids
+  		CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
 		
   		CLKernel kernelFunction = program.createCLKernel("backprojectorKernel");
   		
@@ -61,46 +61,48 @@ public class OpenCLBackprojection {
   		// Create the OpenCL Grids and set their texture
   		
   		// Grid1
-  		CLBuffer<FloatBuffer> sinoCLImgSize = context.createFloatBuffer(imgSize.length, Mem.READ_ONLY);
+  		/*CLBuffer<FloatBuffer> sinoCLImgSize = context.createFloatBuffer(imgSize.length, Mem.READ_ONLY);
   		sinoCLImgSize.getBuffer().put(imgSize);
-  		sinoCLImgSize.getBuffer().rewind();
+  		sinoCLImgSize.getBuffer().rewind();*/
   		
-  		// Create the CLBuffer for the grids
-  		CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
+  
   		
   		// make sure OpenCL is turned on / and things are on the device
   		sinoCL.getDelegate().prepareForDeviceOperation();
-  		sinoCL.getDelegate().getCLBuffer().getBuffer().rewind();
+  		//sinoCL.getDelegate().getCLBuffer().getBuffer().rewind();
   		
   		// Create and set the texture
-  		CLImage2d<FloatBuffer> sinoCLTex = null;
-  		sinoCLTex = context.createImage2d(sinoCL.getDelegate().getCLBuffer().getBuffer(), size[0], size[1], format, Mem.READ_ONLY);
+  		CLImage2d<FloatBuffer> sinoCLTex = context.createImage2d(sinoCL.getDelegate().getCLBuffer().getBuffer(), sinoCL.getSize()[0], sinoCL.getSize()[1], format, Mem.READ_ONLY);
+  		/*sinoCLTex = context.createImage2d(sinoCL.getDelegate().getCLBuffer().getBuffer(), size[0], size[1], format, Mem.READ_ONLY);
   		sinoCL.getDelegate().release();
-  		sinoCL.getDelegate().getCLBuffer().getBuffer().rewind();
+  		sinoCL.getDelegate().getCLBuffer().getBuffer().rewind();*/
   		
+  		// Create the command queue
+  		CLCommandQueue commandQueue = device.createCommandQueue();
   		
   		
   		// Grid3
+  		// allocate the resulting grid
+  		OpenCLGrid2D result = new OpenCLGrid2D(new Grid2D(size[0],size[1]));
   		result.getDelegate().prepareForDeviceOperation();
-  		result.getDelegate().getCLBuffer().getBuffer().rewind();
+  		//result.getDelegate().getCLBuffer().getBuffer().rewind();
   		
   		float [] imsize = new float[(int)(imgSize[0]*imgSize[1])];
-  		CLBuffer<FloatBuffer> result2 = context.createFloatBuffer((int)(imgSize[0]*imgSize[1]), Mem.WRITE_ONLY);
-  		result2.getBuffer().put(imsize).rewind();
+  		CLBuffer<FloatBuffer> resultBuffer = result.getDelegate().getCLBuffer();
   		
   		// Write memory on the GPU 
   		commandQueue
   			.putWriteImage(sinoCLTex, true) // writes the first texture
-  			.putReadBuffer(result.getDelegate().getCLBuffer(), true) // writes the third image buffer
-  			.putWriteBuffer(sinoCLImgSize, true)
+  			.putWriteBuffer(resultBuffer, true)
   			.finish();
   		
   		// Write kernel parameters
   		kernelFunction.rewind();
   		kernelFunction
   		.putArg(sinoCLTex)
-  		.putArg(result2)
-  		.putArg(sinoCLImgSize)
+  		.putArg(resultBuffer)
+  		.putArg(sizereconstruction)
+  		//.putArg(resultBuffer)
   		.putArg(maxTheta)
   		.putArg(maxS)
   		.putArg(deltaSFl)
@@ -120,15 +122,20 @@ public class OpenCLBackprojection {
   		int[] globalWorkSize = new int[]{OpenCLUtil.roundUp(realLocalSize[0], (int)imgSize[0]), OpenCLUtil.roundUp(realLocalSize[1],(int)imgSize[1])};
   		
   		// execute kernel
-  		commandQueue.putWriteImage(sinoCLTex,true).finish();
+  		//commandQueue.putWriteImage(sinoCLTex,true).finish();
   		commandQueue.put2DRangeKernel(kernelFunction, 0, 0, globalWorkSize[0], globalWorkSize[1], realLocalSize[0], realLocalSize[1]).finish();
-  		commandQueue.putReadBuffer(result2,true).finish();
+  		result.getDelegate().notifyDeviceChange();
   		
   		//lesen
-  		result2.getBuffer().get(imsize);
+  		//resultBuffer.getBuffer().get(imsize);
   		//result2.getDelegate().notifyDeviceChange();
   		
-  		Grid2D resultGrid = new Grid2D(imsize,size[0],size[1]);
+  		// clean up
+  	    commandQueue.release();
+  	    kernelFunction.release();
+  	    program.release();
+  		
+  		Grid2D resultGrid = new Grid2D(result);
   		return resultGrid;
 
 	}
@@ -155,7 +162,7 @@ public class OpenCLBackprojection {
 		// number of projection images	
 		int projectionNumber = 180;	
 		// detector size in pixel
-		float detectorSize = 512; 
+		float detectorSize = 128;//512; 
 		// size of a detector Element [mm]
 		double detectorSpacing = 1.0f;
 				
@@ -182,7 +189,7 @@ public class OpenCLBackprojection {
 		Grid2D recon;
 		try {
 			recon = reconstructionCL(32, size, spacingConv, detectorSpacing, detectorSize, projectionNumber, angularRange, rampFilteredSinogram);
-			recon.show();
+			recon.show("The reconstruction result");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -20,6 +20,7 @@ import com.jogamp.opencl.CLMemory.Mem;
 
 import edu.stanford.rsl.tutorial.JuliaG.*;
 import edu.stanford.rsl.tutorial.phantoms.SheppLogan;
+import edu.stanford.rsl.tutorial.praktikum.Phantom;
 import edu.stanford.rsl.conrad.data.generic.complex.OpenCLGridTest;
 import edu.stanford.rsl.conrad.data.numeric.Grid2D;
 import edu.stanford.rsl.conrad.data.numeric.opencl.OpenCLGrid1D;
@@ -38,7 +39,8 @@ public class BackprojectionOpenCL {
      
     // create sinogram of grid
     Grid2D sinogram = new Grid2D(ParallelBeam.sinogram(grid, maxTheta, deltaTheta, maxS, deltaS));
-    sinogram = ParallelBeam.ramlak(sinogram); 
+    sinogram = ParallelBeam.ramlak(sinogram);
+    sinogram.show("The filtered sinogram");
     
     // select device
     CLDevice device = context.getMaxFlopsDevice();
@@ -133,17 +135,26 @@ public class BackprojectionOpenCL {
     }
     
     public static void main (String [] args){
-    	SheppLogan object = new SheppLogan(256);
-        int ImDimX = 512;
+    	ImageJ ij = new ImageJ();
+    	//SheppLogan object = new SheppLogan(256);
+    	// Size of the grid
+    			int[] size = new int[] {128,128};
+    			double [] spacing = {1,1};
+    			float [] spacingConv = {1,1};
+    			       
+    	        
+    			Phantom object = new Phantom(size[0],size[1],spacing);
+    	object.show("The phantom");
+        int ImDimX = 256;
         int ImDimY = ImDimX;
-        float spacingX = 0.5f;
+        float spacingX = 1.f;
         float spacingY = spacingX;
         float deltaS = 1.0f;
-        float maxS = 500.0f; 
+        float maxS = 256.0f; 
 	    float maxTheta = 180;
 	    float deltaTheta = 1.0f;
     	Grid2D sino = reconstructionCL(32, ImDimY, spacingX, deltaS, maxS, maxTheta, deltaTheta, object);
-    	sino.show();
+    	sino.show("The Reconstruction result");
     }
     
 }
