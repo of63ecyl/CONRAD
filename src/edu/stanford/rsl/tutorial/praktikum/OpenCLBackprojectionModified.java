@@ -145,7 +145,7 @@ public class OpenCLBackprojectionModified {
 		new ImageJ();
 		
 		// Size of the grid
-		int[] size = new int[] {128,128};
+		int[] size = new int[] {256,256};
 		double [] spacing = {1,1};
 		float [] spacingConv = {1,1};
 		       
@@ -162,9 +162,11 @@ public class OpenCLBackprojectionModified {
 		// number of projection images	
 		int projectionNumber = 180;	
 		// detector size in pixel
-		float detectorSize = 128;//512; 
+		float detectorSize = 256; 
 		// size of a detector Element [mm]
 		double detectorSpacing = 1.0f;
+		
+		double deltaTheta = angularRange / projectionNumber;
 				
 				
 		Grid2D sino = parallel.projectRayDriven(phantom, projectionNumber, detectorSpacing, detectorSize, angularRange);		
@@ -188,7 +190,7 @@ public class OpenCLBackprojectionModified {
 		
 		Grid2D recon;
 		try {
-			recon = reconstructionCL(32, size, spacingConv, detectorSpacing, detectorSize, projectionNumber, angularRange, rampFilteredSinogram);
+			recon = reconstructionCL(32, size, spacingConv, detectorSpacing, detectorSize, projectionNumber, deltaTheta, rampFilteredSinogram);
 			recon.show("The reconstruction result");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

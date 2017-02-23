@@ -25,11 +25,9 @@ __kernel void backprojectorKernel(__read_only image2d_t sinoCL,
 	//int locSizex = get_local_size(0);
 	//int locSizey = get_local_size(1);
 
-	int x = get_global_id(0); // theta
-	int y = get_global_id(1); // s
+	const unsigned int x = get_global_id(0); // theta
+	const unsigned int y = get_global_id(1); // s
 
-
-	
 	if (x > sizereconstruction || y > sizereconstruction)
 	{
 		return;
@@ -42,7 +40,7 @@ __kernel void backprojectorKernel(__read_only image2d_t sinoCL,
 	float worldX = x*spacingX-((sizereconstruction -1) * (spacingX/2));
 	float worldY = y*spacingY-((sizereconstruction -1) * (spacingY/2));
 	
-	float detectorLength = (maxS)*deltaS; //(maxS-1)*deltaS;
+	float detectorLength =(maxS-1)*deltaS;
 	float sum = 0.0f;
 
 	// loop over the projection angles
