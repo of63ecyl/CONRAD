@@ -21,7 +21,7 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 		
 		// detector index
 		int maxSIndex = numDetectorElements;
-		double detectorLength = (numDetectorElements) * detectorSpacing; //mm
+		double detectorLength = (numDetectorElements-1) * detectorSpacing; //mm
 		
 		// angle index
 		double deltaS = detectorSpacing;
@@ -85,7 +85,7 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 			//rayVec.multiplyElementBy(1, -1);
 			//System.out.println(rayVec.toString());
 			
-			for (int i = 0; i < maxSIndex; ++i) { 
+			for (int i = 0; i < maxSIndex; i++) { 
 				// compute s, the distance from the detector edge in WC [mm]
 				SimpleVector sVectorClone2 = sVector.clone();
 				rayVec.add(sVectorClone2.multipliedBy(deltaS));
@@ -127,8 +127,8 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 				double distance = integralVec.normL2();
 				integralVec.divideBy(distance * samplingRate);
 				
-				
-				for (int t = 0; t < (distance * samplingRate)-1; t++){
+				//double sum = 0;
+				for (int t = 0; t < (distance * samplingRate); t++){
 					current.getAbstractVector().add(integralVec);
 					
 					indices = grid.physicalToIndex(current.get(0), current.get(1));
@@ -147,7 +147,7 @@ public Grid2D projectRayDrivenFan(Grid2D grid, int numProjs, double detectorSpac
 				
 				
 				// write integral value into the sinogram.
-				fanogram.setAtIndex(i, e, (float)sum);
+				fanogram.setAtIndex(i+1, e, (float)sum);
 			}
 		}
 		return fanogram;
@@ -162,28 +162,26 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		double deltaS = detectorSpacing;
 		double deltaTheta = 1.0; //maxThetaIndex / projectionNumber;
 		
-		Grid2D sino = new Grid2D(new float[maxThetaIndex*maxSIndex], maxSIndex, maxThetaIndex);
-		sino.setSpacing(fanogram.getSpacing()[0],deltaTheta);//(deltaS, deltaTheta);
-        sino.setOrigin(fanogram.getOrigin()[0], 0.0);//-(maxSIndex*sino.getSpacing()[0])/2, 0.0);// -(maxThetaIndex*sino.getSpacing()[1])/2);
+		Grid2D sino = new Grid2D (fanogram.getWidth(), 180);
+        sino.setSpacing(fanogram.getSpacing()[0], fanogram.getSpacing()[1]);
+        sino.setOrigin(fanogram.getOrigin()[0], fanogram.getOrigin()[1]);
 		
-		for(int e=0; e<maxThetaIndex; e++){
+		for(int e=0; e<sino.getHeight(); e++){
 			// compute theta [rad] and angular functions.
 			double theta = (deltaTheta * e * Math.PI)/180;
-			double [] spacing = {1,1};
-			double cosTheta = Math.cos(theta);
-			double sinTheta = Math.sin(theta);
 
-			for (int i = 0; i < maxSIndex; i++) {
+			for (int i = 0; i < sino.getWidth(); i++) {
 				double s_par = deltaS * i; //- maxS / 2;
 				double [] s_par_world = sino.indexToPhysical(s_par, theta);
 				double gamma = Math.asin(s_par_world[0]/d_si);
 				double beta = theta - gamma;
+				double s_fan_world = Math.tan(gamma) * d_sd;
 				if(beta<0){
 					//System.out.println(beta);
 					gamma = -gamma;
 					beta = beta - 2*gamma + Math.PI;
+					s_fan_world = (Math.tan(gamma) * d_sd);
 				}
-				double s_fan_world = Math.tan(gamma) * d_sd;
 				
 				double [] indices = fanogram.physicalToIndex(s_fan_world, Math.toDegrees(beta));
 				float curValue = InterpolationOperators.interpolateLinear(fanogram, indices[0], indices[1]);
@@ -213,7 +211,7 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		// detector size in pixel
 		int detectorSize = 512; 
 		// size of a detector Element [mm]
-		double detectorSpacing = 1.0f;
+		double detectorSpacing = 1.0;
 		
 		double d_si = 1000.0;
 		double d_sd = 1500.0;
@@ -221,7 +219,7 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		//double halfFanAngle = 0;
 		//System.out.println(halfFanAngle);
 		//double maxBeta = 180;
-		double maxBeta = (180 + 2 * halfFanAngle);
+		double maxBeta = (180 + (2 * halfFanAngle));
 		//System.out.println(maxBeta);
 		// number of projection images	
 		int projectionNumber = (int) maxBeta;	
@@ -238,7 +236,7 @@ public Grid2D rebinning(Grid2D fanogram, int detectorSize, double detectorSpacin
 		
 		// Ramp Filtering
 				Grid2D rampFilteredSinogram = new Grid2D(sinogram);
-				for (int theta = 0; theta < sinogram.getSize()[1]; ++theta)  //sino.getSize()[1]; 
+				for (int theta = 0; theta < sinogram.getSize()[1]; theta++)  //sino.getSize()[1]; 
 				{
 					// Filter each line of the sinogram independently
 					Grid1D tmp = parallel.rampFiltering(sinogram.getSubGrid(theta), detectorSpacing);
